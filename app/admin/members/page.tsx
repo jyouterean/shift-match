@@ -251,12 +251,15 @@ export default function AdminMembersPage() {
 
       {/* 編集モーダル */}
       {editingMember && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>メンバー編集</CardTitle>
+        <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <Card className="w-full max-w-md shadow-2xl border-2 border-blue-200 bg-white">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-100">
+              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Edit className="h-5 w-5 text-blue-600" />
+                メンバー編集
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="bg-white">
               <form onSubmit={handleUpdateMember} className="space-y-4">
                 <div>
                   <Label htmlFor="name">名前</Label>
@@ -336,13 +339,18 @@ export default function AdminMembersPage() {
                   </>
                 )}
 
-                <div className="flex gap-2">
-                  <Button type="submit" className="flex-1">更新</Button>
+                <div className="flex gap-3 pt-4 border-t mt-6">
+                  <Button 
+                    type="submit" 
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  >
+                    更新
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setEditingMember(null)}
-                    className="flex-1"
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 border-gray-300"
                   >
                     キャンセル
                   </Button>

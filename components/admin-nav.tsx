@@ -37,7 +37,6 @@ const subNavigation = [
   { name: '営業所', href: '/admin/offices', icon: Building2 },
   { name: '単価設定', href: '/admin/price-types', icon: DollarSign },
   { name: '監査ログ', href: '/admin/audit-logs', icon: Shield },
-  { name: 'セキュリティレビュー', href: '/admin/audit-logs/review', icon: Shield },
   { name: '設定', href: '/admin/settings', icon: Settings },
 ]
 
