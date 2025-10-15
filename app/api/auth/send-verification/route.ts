@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import jwt from 'jsonwebtoken'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
-const JWT_SECRET = process.env.JWT_SECRET!
+const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key'
 const DOMAIN = process.env.DOMAIN || process.env.NEXTAUTH_URL || 'http://localhost:3000'
 
 export async function POST(request: NextRequest) {
@@ -31,6 +32,15 @@ export async function POST(request: NextRequest) {
 
     // 認証URLを生成
     const verificationUrl = `${DOMAIN}/api/auth/verify?token=${token}`
+
+    // Resend APIが設定されていない場合はスキップ
+    if (!resend) {
+      console.warn('RESEND_API_KEY is not configured. Email verification skipped.')
+      return NextResponse.json({ 
+        ok: true, 
+        message: 'メール送信機能が無効化されています（開発環境）' 
+      })
+    }
 
     // メール送信
     await resend.emails.send({
