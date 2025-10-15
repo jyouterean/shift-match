@@ -49,14 +49,16 @@ export async function GET(request: NextRequest) {
     await prisma.auditLog.create({
       data: {
         action: 'EMAIL_VERIFIED',
+        entity: 'User',
+        entityId: user.id,
         userId: user.id,
         companyId: user.companyId,
-        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
-        userAgent: request.headers.get('user-agent') || 'unknown',
-        details: {
+        details: JSON.stringify({
           email: decoded.email,
           verifiedAt: new Date().toISOString(),
-        },
+          ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+          userAgent: request.headers.get('user-agent') || 'unknown',
+        }),
       },
     })
 
