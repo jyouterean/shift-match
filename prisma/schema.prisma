@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id              String         @id @default(cuid())
+  name            String
+  code            String         @unique
+  requireApproval Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  users           User[]
+  offices         Office[]
+  routes          Route[]
+  shifts          Shift[]
+  dailyReports    DailyReport[]
+  messages        Message[]
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+  priceTypes      PriceType[]
+}
+
+model Office {
+  id                String              @id @default(cuid())
+  name              String
+  address           String?
+  companyId         String
+  company           Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  users             User[]
+  shifts            Shift[]
+  dailyReports      DailyReport[]
+  officeRequirements OfficeRequirement[]
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  id                String              @id @default(cuid())
+  email             String              @unique
+  password          String
+  name              String
+  phone             String?
+  role              UserRole            @default(STAFF)
+  status            UserStatus          @default(ACTIVE)
+  emailVerified     Boolean             @default(false)
+  verifiedAt        DateTime?
+  companyId         String
+  company           Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  officeId          String?
+  office            Office?             @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  shifts            Shift[]
+  dailyReports      DailyReport[]
+  sentMessages      Message[]           @relation("SentMessages")
+  receivedMessages  Message[]           @relation("ReceivedMessages")
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  shiftAvailability ShiftAvailability[]
+}
+
+model Route {
+  id           String        @id @default(cuid())
+  name         String
+  description  String?
+  companyId    String
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  shifts       Shift[]
+  dailyReports DailyReport[] @relation("RouteToDailyReport")
+}
+
+enum ShiftStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Shift {
+  id        String       @id @default(cuid())
+  date      DateTime
+  startTime DateTime
+  endTime   DateTime
+  status    ShiftStatus  @default(SCHEDULED)
+  notes     String?
+  companyId String
+  company   Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  officeId  String
+  office    Office       @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  routeId   String?
+  route     Route?       @relation(fields: [routeId], references: [id], onDelete: SetNull)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model DailyReport {
+  id            String       @id @default(cuid())
+  date          DateTime
+  route         String
+  startTime     DateTime
+  endTime       DateTime
+  breakMinutes  Int          @default(0)
+  workMinutes   Int
+  deliveryCount Int          @default(0)
+  notes         String?
+  status        ReportStatus @default(SUBMITTED)
+  companyId     String
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  officeId      String
+  office        Office       @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  routeId       String?
+  routeRelation Route?       @relation("RouteToDailyReport", fields: [routeId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  approvedBy    String?
+  approvedAt    DateTime?
+  items         ReportItem[]
+}
+
+model PriceType {
+  id          String       @id @default(cuid())
+  name        String
+  unitPrice   Int
+  description String?
+  isActive    Boolean      @default(true)
+  companyId   String
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  reportItems ReportItem[]
+}
+
+model ReportItem {
+  id            String      @id @default(cuid())
+  quantity      Int
+  dailyReportId String
+  dailyReport   DailyReport @relation(fields: [dailyReportId], references: [id], onDelete: Cascade)
+  priceTypeId   String
+  priceType     PriceType   @relation(fields: [priceTypeId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  content    String
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String?
+  receiver   User?    @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  content   String
+  type      NotificationType @default(INFO)
+  companyId String
+  company   Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String
+  details   String?
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  UNAVAILABLE
+  MAYBE
+}
+
+model ShiftAvailability {
+  id        String             @id @default(cuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  status    AvailabilityStatus @default(AVAILABLE)
+  notes     String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([userId, date])
+}
+
+model OfficeRequirement {
+  id              String   @id @default(cuid())
+  officeId        String
+  office          Office   @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  date            DateTime
+  requiredCount   Int      @default(1)
+  startTime       String   @default("18:00")
+  endTime         String   @default("03:00")
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([officeId, date])
+  @@map("office_requirements")
+}
+
