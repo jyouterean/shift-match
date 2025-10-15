@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
     // アクションごとの統計
     const actionCounts: Record<string, number> = {}
     const userActionCounts: Record<string, Record<string, number>> = {}
-    const ipAddresses: Record<string, number> = {}
+    // IPアドレスの統計機能は将来実装予定
+    // const ipAddresses: Record<string, number> = {}
 
     auditLogs.forEach((log) => {
       // アクション統計
@@ -97,11 +98,6 @@ export async function GET(request: NextRequest) {
       // 日別統計
       const dateKey = log.createdAt.toISOString().split('T')[0]
       stats.byDay[dateKey] = (stats.byDay[dateKey] || 0) + 1
-
-      // IPアドレス統計
-      if (log.ipAddress) {
-        ipAddresses[log.ipAddress] = (ipAddresses[log.ipAddress] || 0) + 1
-      }
 
       // クリティカルイベントのカウント
       if (
@@ -166,16 +162,17 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 4. 同一IPから異常に多いアクセス
-    Object.entries(ipAddresses).forEach(([ip, count]) => {
-      if (count > 1000) {
-        alerts.push({
-          type: 'error',
-          message: `IPアドレス ${ip} から過去${days}日間で${count}回のアクセスが検出されました（DDoS攻撃の可能性）`,
-          timestamp: new Date(),
-        })
-      }
-    })
+    // 4. 同一IPから異常に多いアクセス（将来実装予定）
+    // IPアドレスの記録機能が実装された際に有効化
+    // Object.entries(ipAddresses).forEach(([ip, count]) => {
+    //   if (count > 1000) {
+    //     alerts.push({
+    //       type: 'error',
+    //       message: `IPアドレス ${ip} から過去${days}日間で${count}回のアクセスが検出されました（DDoS攻撃の可能性）`,
+    //       timestamp: new Date(),
+    //     })
+    //   }
+    // })
 
     // 5. 短時間での大量操作
     const recentLogs = auditLogs.filter((log) => {
