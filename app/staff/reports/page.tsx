@@ -403,7 +403,7 @@ export default function StaffReportsPage() {
 
       {/* 作成モーダル */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <Card className="w-full max-w-2xl my-8">
             <CardHeader>
               <CardTitle>日報提出</CardTitle>
@@ -611,7 +611,7 @@ export default function StaffReportsPage() {
 
       {/* 単価タイプ追加モーダル */}
       {showAddPriceTypeForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
+        <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle>新しい単価タイプを追加</CardTitle>

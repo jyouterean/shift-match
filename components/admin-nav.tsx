@@ -32,7 +32,7 @@ const mainNavigation = [
 
 // サブメニュー
 const subNavigation = [
-  { name: 'シフト一覧', href: '/admin/shifts/manage', icon: Calendar },
+  { name: 'シフト閲覧', href: '/admin/shifts/view', icon: Calendar },
   { name: 'メンバー', href: '/admin/members', icon: Users },
   { name: '営業所', href: '/admin/offices', icon: Building2 },
   { name: '単価設定', href: '/admin/price-types', icon: DollarSign },

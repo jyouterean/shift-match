@@ -249,7 +249,7 @@ export default function SecretAdminPage() {
 
       {/* 会社コード表示モーダル */}
       {createdCompany && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle className="text-center text-2xl text-green-600 flex items-center justify-center gap-2">

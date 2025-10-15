@@ -220,7 +220,7 @@ export default function AdminNotificationsPage() {
 
       {/* 作成モーダル */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle>通知作成</CardTitle>

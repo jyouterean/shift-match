@@ -445,7 +445,7 @@ export default function ShiftCalendarPage() {
 
       {/* 日別詳細モーダル */}
       {showDetailModal && dayDetail && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="w-full max-w-5xl my-8">
             <Card>
               <div className="p-4 sm:p-6">
@@ -738,7 +738,7 @@ export default function ShiftCalendarPage() {
 
       {/* 営業所選択モーダル */}
       {showAssignModal && selectedAvailability && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[60]">
+        <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
           <Card className="w-full max-w-md">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">

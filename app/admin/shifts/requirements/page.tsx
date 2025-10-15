@@ -284,7 +284,7 @@ export default function RequirementsPage() {
 
       {/* 一括作成フォーム */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <CardTitle>必要人数を一括設定</CardTitle>

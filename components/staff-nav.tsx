@@ -3,14 +3,15 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { 
+import {
   LayoutDashboard,
   Calendar,
   FileText,
   MessageSquare,
   Bell,
   LogOut,
-  User
+  User,
+  Settings
 } from 'lucide-react'
 import { signOut, useSession } from 'next-auth/react'
 import { useState } from 'react'
@@ -25,6 +26,7 @@ const navigation = [
 
 const subNavigation = [
   { name: '通知', href: '/staff/notifications', icon: Bell },
+  { name: '設定', href: '/staff/settings', icon: Settings },
 ]
 
 export default function StaffNav() {
