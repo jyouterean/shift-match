@@ -1,12 +1,13 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { XCircle, AlertTriangle } from 'lucide-react'
 
-export default function VerifyFailedPage() {
+function VerifyFailedContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
 
@@ -109,6 +110,21 @@ export default function VerifyFailedPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function VerifyFailedPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-100 p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    }>
+      <VerifyFailedContent />
+    </Suspense>
   )
 }
 
