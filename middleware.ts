@@ -1,6 +1,12 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
-import crypto from 'crypto'
+
+// Edge Runtime対応：cryptoの代わりにWeb Crypto APIを使用
+function generateNonce(): string {
+  const array = new Uint8Array(16)
+  crypto.getRandomValues(array)
+  return btoa(String.fromCharCode(...array))
+}
 
 // CSP生成関数（nonce付き）
 function generateCSP(nonce: string): string {
@@ -43,8 +49,8 @@ export default withAuth(
       }
     }
 
-    // Nonce生成とCSP設定
-    const nonce = crypto.randomBytes(16).toString('base64')
+    // Nonce生成とCSP設定（Edge Runtime対応）
+    const nonce = generateNonce()
     const response = NextResponse.next()
     
     // CSPをnonceで動的に生成

@@ -20,13 +20,13 @@ export const viewport: Viewport = {
   themeColor: '#3b82f6',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // middlewareから渡されたnonceを取得
-  const headersList = headers()
+  // middlewareから渡されたnonceを取得（Next.js 15では非同期）
+  const headersList = await headers()
   const nonce = headersList.get('x-nonce') || undefined
 
   return (
