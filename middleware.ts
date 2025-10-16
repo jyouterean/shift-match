@@ -25,26 +25,9 @@ export default withAuth(
       }
     }
 
-    // セキュリティヘッダーを追加
+    // セキュリティヘッダーはnext.config.jsで設定（一元管理）
+    // ただし、HSTSは本番環境のみ動的に設定
     const response = NextResponse.next()
-    
-    // Content Security Policy
-    response.headers.set(
-      'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://vercel.live; frame-ancestors 'none';"
-    )
-    
-    // X-Frame-Options (クリックジャッキング対策)
-    response.headers.set('X-Frame-Options', 'DENY')
-    
-    // X-Content-Type-Options (MIMEタイプスニッフィング対策)
-    response.headers.set('X-Content-Type-Options', 'nosniff')
-    
-    // Referrer-Policy (リファラー情報の制御)
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-    
-    // Permissions-Policy (旧Feature-Policy)
-    response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()')
     
     // Strict-Transport-Security (HTTPS強制、本番環境のみ)
     if (process.env.NODE_ENV === 'production') {
