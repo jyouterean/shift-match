@@ -33,10 +33,11 @@ const securityHeaders = [
     key: "Cross-Origin-Resource-Policy",
     value: "same-origin",
   },
-  {
-    key: "Cross-Origin-Embedder-Policy",
-    value: "require-corp",
-  },
+  // COEP は外部リソース読み込み（Google Fonts等）と互換性のため一時的にコメントアウト
+  // {
+  //   key: "Cross-Origin-Embedder-Policy",
+  //   value: "require-corp",
+  // },
   // CSP は middleware 側で nonce を生成して差し替えるためプレースホルダに
   {
     key: "Content-Security-Policy",

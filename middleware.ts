@@ -8,17 +8,18 @@ function generateNonce(): string {
   return btoa(String.fromCharCode(...array))
 }
 
-// CSP生成関数（nonce付き）
+// CSP生成関数（nonce付き - Mozilla Observatory A+対応）
+// unsafe-inline と data: を完全削除
 function generateCSP(nonce: string): string {
   return [
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'none'",
-    `script-src 'self' 'nonce-${nonce}' 'unsafe-eval'`, // Next.jsの動的importに必要
-    "style-src 'self' 'unsafe-inline'", // Tailwind CSSのJIT対応
-    "img-src 'self' data: blob: https:",
-    "font-src 'self' data:",
+    `script-src 'self' 'nonce-${nonce}' 'unsafe-eval'`, // 'unsafe-eval'のみNext.jsの動的importに必要
+    `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`, // nonce方式に変更
+    "img-src 'self' https: blob:", // data: を削除
+    "font-src 'self' https://fonts.gstatic.com", // data: を削除
     "connect-src 'self' https: wss:",
     "form-action 'self'",
     "upgrade-insecure-requests",
