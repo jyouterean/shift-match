@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import { headers } from 'next/headers'
+import Script from 'next/script'
 import './globals.css'
 import { Providers } from '@/components/providers'
 
@@ -23,8 +25,22 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // middlewareから渡されたnonceを取得
+  const headersList = headers()
+  const nonce = headersList.get('x-nonce') || undefined
+
   return (
     <html lang="ja">
+      <head>
+        {/* CSP nonce対応：アプリ初期化スクリプト */}
+        <Script 
+          id="app-init" 
+          nonce={nonce} 
+          strategy="beforeInteractive"
+        >
+          {`window.__APP_INIT__ = true;`}
+        </Script>
+      </head>
       <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>

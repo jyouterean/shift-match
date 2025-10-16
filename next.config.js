@@ -1,8 +1,14 @@
 /** @type {import('next').NextConfig} */
 
 // セキュリティヘッダー設定
-// 目的：Security Headers 評価 D → A+ に向上
+// 目的：Security Headers 評価 A+ に引き上げ
+// HSTS preload 対応 + CSP nonce化で unsafe-inline 完全排除
 const securityHeaders = [
+  // HSTS: 2年 + サブドメイン + preload対応
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
+  },
   {
     key: "X-Frame-Options",
     value: "DENY",
@@ -17,16 +23,24 @@ const securityHeaders = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    value: "camera=(), microphone=(), geolocation=()",
   },
+  {
+    key: "Cross-Origin-Opener-Policy",
+    value: "same-origin",
+  },
+  {
+    key: "Cross-Origin-Resource-Policy",
+    value: "same-origin",
+  },
+  {
+    key: "Cross-Origin-Embedder-Policy",
+    value: "require-corp",
+  },
+  // CSP は middleware 側で nonce を生成して差し替えるためプレースホルダに
   {
     key: "Content-Security-Policy",
-    value:
-      "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://vercel.live https://*.vercel.app; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
-  },
-  {
-    key: "Strict-Transport-Security",
-    value: "max-age=63072000; includeSubDomains; preload",
+    value: "__CSP__",
   },
 ]
 
@@ -46,5 +60,6 @@ const nextConfig = {
 }
 
 module.exports = nextConfig
+
 
 

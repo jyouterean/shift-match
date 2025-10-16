@@ -1,5 +1,23 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
+import crypto from 'crypto'
+
+// CSP生成関数（nonce付き）
+function generateCSP(nonce: string): string {
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    `script-src 'self' 'nonce-${nonce}' 'unsafe-eval'`, // Next.jsの動的importに必要
+    "style-src 'self' 'unsafe-inline'", // Tailwind CSSのJIT対応
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https: wss:",
+    "form-action 'self'",
+    "upgrade-insecure-requests",
+  ].join("; ")
+}
 
 export default withAuth(
   function middleware(req) {
@@ -25,9 +43,15 @@ export default withAuth(
       }
     }
 
-    // セキュリティヘッダーはnext.config.jsで設定（一元管理）
-    // ただし、HSTSは本番環境のみ動的に設定
+    // Nonce生成とCSP設定
+    const nonce = crypto.randomBytes(16).toString('base64')
     const response = NextResponse.next()
+    
+    // CSPをnonceで動的に生成
+    response.headers.set('Content-Security-Policy', generateCSP(nonce))
+    
+    // NonceをヘッダーとしてクライアントにHint（layout.tsxで取得）
+    response.headers.set('x-nonce', nonce)
     
     // Strict-Transport-Security (HTTPS強制、本番環境のみ)
     if (process.env.NODE_ENV === 'production') {
