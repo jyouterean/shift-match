@@ -319,7 +319,7 @@ export default function ManageShiftsPage() {
         {/* 作成・編集フォーム */}
         {showCreateForm && (
           <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md">
+            <Card className="w-full max-w-md shadow-2xl border-2 border-blue-200 bg-white">
               <CardHeader>
                 <CardTitle>
                   {editingShift ? 'シフトを編集' : '新規シフト作成'}

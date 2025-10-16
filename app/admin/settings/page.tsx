@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import AdminNav from '@/components/admin-nav'
 import Link from 'next/link'
-import { Settings, Building2, Shield, Download, Calendar, Users as UsersIcon, AlertTriangle } from 'lucide-react'
+import { Settings, Building2, Shield, Download, Calendar, Users as UsersIcon, Trash2, AlertTriangle } from 'lucide-react'
 
 interface Company {
   id: string
@@ -86,20 +86,24 @@ export default function AdminSettingsPage() {
   }
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== '削除') {
-      alert('「削除」と入力してください')
+    if (deleteConfirmText !== company?.name) {
+      alert('会社名が正しくありません')
+      return
+    }
+
+    if (!confirm('本当にアカウントを削除しますか？この操作は取り消せません。')) {
       return
     }
 
     try {
-      const response = await fetch('/api/auth/delete-account', {
+      const response = await fetch('/api/admin/account', {
         method: 'DELETE',
       })
 
       const data = await response.json()
       if (response.ok) {
         alert('アカウントを削除しました。ログアウトします。')
-        router.push('/auth/signin')
+        router.push('/api/auth/signout')
       } else {
         alert(data.error || 'アカウント削除に失敗しました')
       }
@@ -281,87 +285,72 @@ export default function AdminSettingsPage() {
                   危険な操作
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="bg-white border border-red-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">アカウント削除</h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                      この操作は取り消せません。すべてのデータが完全に削除されます。
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowDeleteConfirm(true)}
-                      className="w-full bg-red-50 hover:bg-red-100 text-red-700 border-red-300"
-                    >
-                      <AlertTriangle className="h-4 w-4 mr-2" />
-                      アカウントを削除
-                    </Button>
-                  </div>
+              <CardContent className="space-y-4">
+                <div className="bg-white p-4 rounded-lg border border-red-200">
+                  <h3 className="font-semibold text-red-900 mb-2">アカウントの削除</h3>
+                  <p className="text-sm text-gray-700 mb-4">
+                    アカウントを削除すると、すべてのデータが完全に削除されます。
+                    この操作は取り消すことができません。
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
+                    variant="outline"
+                    className="w-full bg-red-50 hover:bg-red-100 text-red-700 border-red-300"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    アカウント削除
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
 
-        {/* 削除確認モーダル */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md shadow-2xl border-2 border-red-200 bg-white">
-              <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50 border-b-2 border-red-100">
-                <CardTitle className="text-xl font-bold text-red-700 flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5" />
-                  アカウント削除の確認
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="bg-white pt-6">
-                <div className="space-y-4">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p className="text-sm text-red-800 font-medium mb-2">
-                      ⚠️ 警告: この操作は取り消せません
-                    </p>
-                    <ul className="text-sm text-red-700 space-y-1 list-disc list-inside">
-                      <li>アカウントが完全に削除されます</li>
-                      <li>すべてのデータが失われます</li>
-                      <li>この操作は元に戻せません</li>
-                    </ul>
-                  </div>
+                {showDeleteConfirm && (
+                  <div className="bg-white p-4 rounded-lg border-2 border-red-300 space-y-4">
+                    <div className="bg-red-100 p-3 rounded-md">
+                      <p className="text-sm font-semibold text-red-900 mb-2">
+                        ⚠️ 警告: この操作は取り消せません
+                      </p>
+                      <p className="text-xs text-red-800">
+                        削除されるデータ: 会社情報、全メンバー、シフト、日報、チャット履歴、監査ログなど
+                      </p>
+                    </div>
 
-                  <div>
-                    <Label htmlFor="deleteConfirm" className="text-gray-900">
-                      削除を確認するには「削除」と入力してください
-                    </Label>
-                    <Input
-                      id="deleteConfirm"
-                      value={deleteConfirmText}
-                      onChange={(e) => setDeleteConfirmText(e.target.value)}
-                      placeholder="削除"
-                      className="mt-2"
-                    />
-                  </div>
+                    <div>
+                      <Label htmlFor="deleteConfirm" className="text-sm font-semibold text-gray-900">
+                        確認のため会社名「{company?.name}」を入力してください
+                      </Label>
+                      <Input
+                        id="deleteConfirm"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder={company?.name}
+                        className="mt-2 border-red-300 focus:border-red-500"
+                      />
+                    </div>
 
-                  <div className="flex gap-3 pt-4 border-t">
-                    <Button
-                      type="button"
-                      onClick={handleDeleteAccount}
-                      disabled={deleteConfirmText !== '削除'}
-                      className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50"
-                    >
-                      削除を実行
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setShowDeleteConfirm(false)
-                        setDeleteConfirmText('')
-                      }}
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 border-gray-300"
-                    >
-                      キャンセル
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={handleDeleteAccount}
+                        disabled={deleteConfirmText !== company?.name}
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-300"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        完全に削除する
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setShowDeleteConfirm(false)
+                          setDeleteConfirmText('')
+                        }}
+                        className="flex-1"
+                      >
+                        キャンセル
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>

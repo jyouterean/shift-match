@@ -267,7 +267,7 @@ export default function AdminPriceTypesPage() {
       {/* 作成モーダル */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md shadow-2xl border-2 border-blue-200 bg-white">
             <CardHeader>
               <CardTitle>単価タイプ追加</CardTitle>
             </CardHeader>
@@ -327,7 +327,7 @@ export default function AdminPriceTypesPage() {
       {/* 編集モーダル */}
       {editingPriceType && (
         <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md shadow-2xl border-2 border-blue-200 bg-white">
             <CardHeader>
               <CardTitle>単価タイプ編集</CardTitle>
             </CardHeader>
