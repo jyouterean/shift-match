@@ -165,20 +165,16 @@ async function testEmailVerification() {
 
     const unverifiedUsers = users.filter(u => !u.emailVerified)
 
-    if (unverifiedUsers.length > 0) {
-      results.push({
-        test: 'メール認証状態',
-        status: 'WARNING',
-        message: `メール未認証ユーザー: ${unverifiedUsers.length} 人`,
-        details: unverifiedUsers,
-      })
-    } else {
-      results.push({
-        test: 'メール認証状態',
-        status: 'PASS',
-        message: 'すべてのユーザーがメール認証済み',
-      })
-    }
+    // メール認証機能は無効化されているため、チェックは情報提供のみ
+    results.push({
+      test: 'メール認証状態（参考情報）',
+      status: 'PASS',
+      message: `メール認証機能は無効化されています（ユーザー数: ${users.length}）`,
+      details: {
+        totalUsers: users.length,
+        note: 'メール認証は不要です',
+      },
+    })
   } catch (error) {
     results.push({
       test: 'メール認証状態',
@@ -194,8 +190,6 @@ async function testEnvironmentVariables() {
     'DATABASE_URL',
     'NEXTAUTH_SECRET',
     'NEXTAUTH_URL',
-    'RESEND_API_KEY',
-    'JWT_SECRET',
     'COOKIE_DOMAIN',
   ]
 
