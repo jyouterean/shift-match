@@ -12,6 +12,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:activate-users": "tsx scripts/activate-all-users.ts",
     "db:reset-users": "tsx scripts/reset-users.ts",
+    "generate-secret-hash": "tsx scripts/generate-secret-hash.ts",
     "test:features": "tsx scripts/test-features.ts"
   },
   "dependencies": {
