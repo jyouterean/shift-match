@@ -36,11 +36,6 @@ export const authOptions: NextAuthOptions = {
           throw new Error('このアカウントは現在利用できません')
         }
 
-        // メール認証チェック（メール認証システム有効時のみ）
-        if (process.env.RESEND_API_KEY && !user.emailVerified) {
-          throw new Error('メールアドレスが未認証です。メールに送信された認証リンクをクリックしてください。')
-        }
-
         // 会社情報チェック
         if (!user.company) {
           throw new Error('会社情報が見つかりません。管理者にお問い合わせください。')

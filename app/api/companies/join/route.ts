@@ -88,22 +88,6 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // メール認証を送信（非同期、エラーがあってもユーザー作成は成功）
-    try {
-      await fetch(`${process.env.DOMAIN || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/send-verification`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          name,
-          role: 'STAFF',
-        }),
-      })
-    } catch (emailError) {
-      console.error('Failed to send verification email:', emailError)
-      // メール送信失敗してもアカウント作成は成功とする
-    }
-
     return NextResponse.json({ 
       success: true, 
       user: {
@@ -112,8 +96,8 @@ export async function POST(request: NextRequest) {
         email: user.email,
       },
       message: company.requireApproval 
-        ? '登録が完了しました。メールアドレスに認証リンクを送信しました。管理者の承認もお待ちください。' 
-        : '登録が完了しました。メールアドレスに認証リンクを送信しました。'
+        ? '登録が完了しました。管理者の承認をお待ちください。' 
+        : '登録が完了しました。ログインしてご利用ください。'
     })
   } catch (error) {
     console.error('Join company error:', error)
