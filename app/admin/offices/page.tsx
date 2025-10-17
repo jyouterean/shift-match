@@ -205,6 +205,14 @@ export default function AdminOfficesPage() {
                     <Users className="h-4 w-4" />
                     所属メンバー: {office._count.users}人
                   </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full mt-2"
+                    onClick={() => router.push(`/admin/offices/${office.id}/requirements`)}
+                  >
+                    📅 必要人数設定
+                  </Button>
                 </div>
               </CardContent>
             </Card>
