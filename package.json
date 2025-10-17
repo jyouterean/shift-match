@@ -11,6 +11,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx scripts/seed.ts",
     "db:activate-users": "tsx scripts/activate-all-users.ts",
+    "db:reset-users": "tsx scripts/reset-users.ts",
     "test:features": "tsx scripts/test-features.ts"
   },
   "dependencies": {
