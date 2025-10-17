@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { useState, useEffect } from 'react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -12,10 +12,22 @@ import SessionDebug from '@/components/session-debug'
 
 export default function SignInPage() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  // セッションがある場合は自動的にリダイレクト
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      if (session.user.role === 'OWNER' || session.user.role === 'ADMIN') {
+        router.push('/admin/dashboard')
+      } else {
+        router.push('/staff/dashboard')
+      }
+    }
+  }, [session, status, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,16 +47,10 @@ export default function SignInPage() {
         return
       }
 
-      // ログイン成功後、ユーザー情報を取得してリダイレクト
-      const response = await fetch('/api/auth/session')
-      const session = await response.json()
-
-      if (session?.user?.role === 'OWNER' || session?.user?.role === 'ADMIN') {
-        router.push('/admin/dashboard')
-      } else {
-        router.push('/staff/dashboard')
-      }
+      // ログイン成功 - useEffectが自動的にリダイレクトを処理
+      // isLoadingはtrueのままにして、useEffectによるリダイレクトを待つ
     } catch (error) {
+      console.error('Login error:', error)
       setError('ログインに失敗しました')
       setIsLoading(false)
     }
