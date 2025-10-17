@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
+type OfficeStatus = 'FILLED' | 'PARTIAL' | 'SHORTAGE' | 'APPLIED' | 'IDLE'
+
 const createShiftSchema = z.object({
   userId: z.string(),
   officeId: z.string(),
@@ -218,7 +220,7 @@ async function getMonthSummary(companyId: string, month: string) {
   })
 
   // 各日の代表ステータスを決定（最も厳しい状態）
-  const statusPriority = {
+  const statusPriority: Record<OfficeStatus, number> = {
     SHORTAGE: 4,
     PARTIAL: 3,
     APPLIED: 2,
@@ -227,11 +229,11 @@ async function getMonthSummary(companyId: string, month: string) {
   }
 
   daysMap.forEach((day) => {
-    let worstStatus: any = 'IDLE'
+    let worstStatus: OfficeStatus = 'IDLE'
     let worstPriority = 0
 
     day.offices.forEach((office: any) => {
-      const priority = statusPriority[office.status]
+      const priority = statusPriority[office.status as OfficeStatus]
       if (priority > worstPriority) {
         worstPriority = priority
         worstStatus = office.status
