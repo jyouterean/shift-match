@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import SessionDebug from '@/components/session-debug'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -121,6 +122,9 @@ export default function SignInPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* デバッグ用（問題解決後に削除） */}
+        {process.env.NODE_ENV === 'development' && <SessionDebug />}
       </div>
     </div>
   )

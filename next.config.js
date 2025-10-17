@@ -49,6 +49,18 @@ const nextConfig = {
   // Allow external packages
   serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   
+  // wwwをnon-wwwにリダイレクト
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.shiftmatch.net" }],
+        destination: "https://shiftmatch.net/:path*",
+        permanent: true,
+      },
+    ]
+  },
+  
   // セキュリティヘッダーを全ページに適用
   async headers() {
     return [

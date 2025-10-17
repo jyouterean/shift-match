@@ -99,10 +99,9 @@ export default withAuth(
 )
 
 export const config = {
+  // api/authを除外して無限ループを防止
   matcher: [
-    '/admin/:path*',
-    '/staff/:path*',
-    '/api/protected/:path*'
+    '/((?!_next|api/auth|favicon.ico|assets|images|public).*)',
   ]
 }
 

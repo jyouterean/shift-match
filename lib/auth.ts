@@ -102,6 +102,26 @@ export const authOptions: NextAuthOptions = {
     }
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
+  debug: process.env.NEXTAUTH_DEBUG === 'true' || process.env.NODE_ENV === 'development',
+  // デバッグ用イベントハンドラ（ログイン画面フリーズ問題調査用）
+  events: {
+    async signIn(message) {
+      console.log('✅ NextAuth Event: signIn', {
+        user: message.user.email,
+        timestamp: new Date().toISOString(),
+      })
+    },
+    async signOut(message) {
+      console.log('🚪 NextAuth Event: signOut', {
+        timestamp: new Date().toISOString(),
+      })
+    },
+    async session(message) {
+      console.log('🔐 NextAuth Event: session', {
+        user: message.session?.user?.email || 'unknown',
+        timestamp: new Date().toISOString(),
+      })
+    },
+  },
 }
 
