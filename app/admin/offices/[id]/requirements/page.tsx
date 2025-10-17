@@ -103,8 +103,8 @@ export default function OfficeRequirementsPage() {
           reqMap[dateStr] = {
             date: dateStr,
             requiredCount: req.requiredCount,
-            startTime: req.startTime ? format(new Date(req.startTime), 'HH:mm') : '09:00',
-            endTime: req.endTime ? format(new Date(req.endTime), 'HH:mm') : '18:00',
+            startTime: req.startTime || '09:00',
+            endTime: req.endTime || '18:00',
             notes: req.notes || '',
           }
         })

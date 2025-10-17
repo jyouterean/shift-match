@@ -49,8 +49,6 @@ export async function POST(request: NextRequest) {
     const results = await prisma.$transaction(
       requirements.map((req) => {
         const dateObj = new Date(req.date + 'T00:00:00Z')
-        const startTimeObj = new Date(req.date + 'T' + req.startTime + ':00Z')
-        const endTimeObj = new Date(req.date + 'T' + req.endTime + ':00Z')
 
         return prisma.officeRequirement.upsert({
           where: {
@@ -61,16 +59,16 @@ export async function POST(request: NextRequest) {
           },
           update: {
             requiredCount: req.requiredCount,
-            startTime: startTimeObj,
-            endTime: endTimeObj,
+            startTime: req.startTime,
+            endTime: req.endTime,
             notes: req.notes || null,
           },
           create: {
             officeId,
             date: dateObj,
             requiredCount: req.requiredCount,
-            startTime: startTimeObj,
-            endTime: endTimeObj,
+            startTime: req.startTime,
+            endTime: req.endTime,
             notes: req.notes || null,
           },
         })
