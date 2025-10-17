@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { rateLimit, getClientIp, RateLimitPresets } from '@/lib/rate-limit'
 
+// 管理者専用パスワードハッシュ (Remon5252)
+const ADMIN_PASSWORD_HASH = '$2a$10$.bXU1DNJAqR8pUCCk6IIFu1SaLtijzxwmdNQ7Ah0isMFQzIiBueF.'
+
 export async function POST(request: NextRequest) {
   try {
     // レート制限チェック（5回/15分）
@@ -37,8 +40,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 環境変数からシークレットパスワードハッシュを取得
-    const secretPasswordHash = process.env.ADMIN_SECRET_PASSWORD_HASH
+    // ハッシュが設定されているか確認
+    const secretPasswordHash = ADMIN_PASSWORD_HASH
     
     if (!secretPasswordHash) {
       console.error('ADMIN_SECRET_PASSWORD_HASH is not configured')
