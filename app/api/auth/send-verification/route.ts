@@ -43,8 +43,9 @@ export async function POST(request: NextRequest) {
     }
 
     // メール送信
+    // Resend無料プランでは onboarding@resend.dev を使用
     await resend.emails.send({
-      from: 'ShiftMatch <noreply@shiftmatch.app>',
+      from: 'ShiftMatch <onboarding@resend.dev>',
       to: email,
       subject: '【ShiftMatch】メールアドレスの認証',
       html: `
