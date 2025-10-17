@@ -531,7 +531,8 @@ export default function AdminShiftsPage() {
         {/* FAB */}
         <button
           className="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all"
-          onClick={() => router.push('/admin/shifts/calendar')}
+          onClick={() => router.push('/admin/shifts/requirements')}
+          title="必要人数設定"
         >
           <Plus className="h-6 w-6" />
         </button>

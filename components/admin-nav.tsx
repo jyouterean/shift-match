@@ -24,7 +24,7 @@ import { signOut } from 'next-auth/react'
 // メインナビゲーション（ボトムバー用）
 const mainNavigation = [
   { name: 'ホーム', href: '/admin/dashboard', icon: LayoutDashboard },
-  { name: 'シフト', href: '/admin/shifts/calendar', icon: Calendar },
+  { name: 'シフト', href: '/admin/shifts', icon: Calendar },
   { name: '日報', href: '/admin/reports', icon: FileText },
   { name: 'チャット', href: '/admin/chat', icon: MessageSquare },
   { name: 'メニュー', href: '#', icon: Menu, isMenu: true },
