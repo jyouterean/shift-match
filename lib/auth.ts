@@ -54,13 +54,18 @@ export const authOptions: NextAuthOptions = {
   },
   cookies: {
     sessionToken: {
-      name: 'next-auth.session-token',
+      name: process.env.NODE_ENV === 'production' 
+        ? '__Secure-next-auth.session-token'  // 本番環境: __Secure- プレフィックス
+        : 'next-auth.session-token',           // 開発環境: 通常の名前
       options: {
-        httpOnly: true,
-        sameSite: 'lax',
+        httpOnly: true,      // XSS対策: JavaScriptからアクセス不可
+        sameSite: 'lax',     // CSRF対策: クロスサイトリクエスト制限
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 15 * 24 * 60 * 60, // 15日間
+        secure: process.env.NODE_ENV === 'production',  // 本番環境: HTTPS必須
+        domain: process.env.NODE_ENV === 'production' 
+          ? process.env.COOKIE_DOMAIN    // 本番環境: カスタムドメイン (.shiftmatch.net)
+          : undefined,                   // 開発環境: ドメイン指定なし
+        maxAge: 15 * 24 * 60 * 60,      // 15日間 (1,296,000秒)
       },
     },
   },
