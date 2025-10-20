@@ -117,14 +117,12 @@ export function useLoginRedirect() {
 /**
  * ローディング状態のUI
  */
-export function LoadingScreen({ message = '読み込み中...' }: { message?: string }) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-4 border-blue-600 mx-auto"></div>
-        <p className="mt-6 text-gray-700 text-lg font-medium">{message}</p>
-      </div>
-    </div>
+export function LoadingScreen({ message = '読み込み中...' }: { message?: string }): JSX.Element {
+  return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white' },
+    React.createElement('div', { className: 'text-center' },
+      React.createElement('div', { className: 'animate-spin rounded-full h-32 w-32 border-b-4 border-blue-600 mx-auto' }),
+      React.createElement('p', { className: 'mt-6 text-gray-700 text-lg font-medium' }, message)
+    )
   )
 }
 
