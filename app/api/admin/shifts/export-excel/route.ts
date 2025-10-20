@@ -84,8 +84,8 @@ export async function GET(request: NextRequest) {
       const dateStr = format(shift.date, 'yyyy-MM-dd')
       shiftMap[shift.userId][dateStr] = {
         office: shift.office?.name || '-',
-        startTime: shift.startTime || '-',
-        endTime: shift.endTime || '-',
+        startTime: shift.startTime ? format(shift.startTime, 'HH:mm') : '-',
+        endTime: shift.endTime ? format(shift.endTime, 'HH:mm') : '-',
       }
     })
 
