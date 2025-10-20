@@ -117,7 +117,7 @@ export function useLoginRedirect() {
 /**
  * ローディング状態のUI
  */
-export function LoadingScreen({ message = '読み込み中...' }: { message?: string }): JSX.Element {
+export function LoadingScreen({ message = '読み込み中...' }: { message?: string }): React.ReactElement {
   return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white' },
     React.createElement('div', { className: 'text-center' },
       React.createElement('div', { className: 'animate-spin rounded-full h-32 w-32 border-b-4 border-blue-600 mx-auto' }),
