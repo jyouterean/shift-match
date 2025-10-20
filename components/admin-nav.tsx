@@ -121,9 +121,18 @@ export default function AdminNav() {
               })}
             </div>
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (confirm('ログアウトしますか？')) {
-                  signOut({ callbackUrl: '/' })
+                  try {
+                    // カスタムログアウトAPIを呼び出してCookieを削除
+                    await fetch('/api/auth/logout', { method: 'POST' })
+                    // NextAuthのsignOutを呼び出してセッションをクリア
+                    await signOut({ callbackUrl: '/', redirect: true })
+                  } catch (error) {
+                    console.error('Logout error:', error)
+                    // エラーが発生してもログアウトを実行
+                    await signOut({ callbackUrl: '/', redirect: true })
+                  }
                 }
               }}
               className="w-full mt-4 py-4 bg-red-100 text-red-700 rounded-2xl font-medium active:scale-95 transition-transform flex items-center justify-center gap-2"
