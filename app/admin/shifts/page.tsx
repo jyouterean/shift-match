@@ -639,15 +639,6 @@ export default function AdminShiftsPage() {
           </div>
         </div>
 
-        {/* FAB */}
-        <button
-          className="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all"
-          onClick={() => router.push('/admin/shifts/requirements')}
-          title="必要人数設定"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
-
         {/* 割当ダイアログ */}
         {assignDialog && (
           <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-50">
