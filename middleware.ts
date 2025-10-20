@@ -27,7 +27,7 @@ function generateCSP(nonce: string): string {
 }
 
 export default withAuth(
-  function middleware(req: NextRequest) {
+  function middleware(req) {
     // URL統一処理：vercel.appドメインと独自ドメインの混在を防止
     const canonicalUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL
     if (canonicalUrl) {
