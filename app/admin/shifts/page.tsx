@@ -93,6 +93,11 @@ export default function AdminShiftsPage() {
   // 右ペイン：フィルタ
   const [calendarFilter, setCalendarFilter] = useState<'all' | 'shortage' | 'filled'>('all')
   
+  // シフト締切
+  const [deadline, setDeadline] = useState<Date | null>(null)
+  const [showDeadlineDialog, setShowDeadlineDialog] = useState(false)
+  const [deadlineInput, setDeadlineInput] = useState('')
+  
   // 割当ダイアログ
   const [assignDialog, setAssignDialog] = useState<{
     open: boolean
@@ -119,6 +124,8 @@ export default function AdminShiftsPage() {
     setError(null)
     try {
       const month = format(currentMonth, 'yyyy-MM')
+      const year = currentMonth.getFullYear()
+      const monthNum = currentMonth.getMonth() + 1
       
       // 月サマリー取得
       const summaryRes = await fetch(`/api/admin/shifts?month=${month}`)
@@ -136,6 +143,18 @@ export default function AdminShiftsPage() {
       
       if (availRes.ok) {
         setAvailabilities(availData.availabilities || [])
+      }
+
+      // シフト締切取得
+      const deadlineRes = await fetch(`/api/admin/shift-deadline?year=${year}&month=${monthNum}`)
+      const deadlineData = await deadlineRes.json()
+      
+      if (deadlineRes.ok && deadlineData.deadline) {
+        setDeadline(new Date(deadlineData.deadline.deadlineDate))
+        setDeadlineInput(format(new Date(deadlineData.deadline.deadlineDate), 'yyyy-MM-dd'))
+      } else {
+        setDeadline(null)
+        setDeadlineInput('')
       }
     } catch (err) {
       console.error('Failed to fetch data:', err)
@@ -222,6 +241,70 @@ export default function AdminShiftsPage() {
           })
         }
       }
+    }
+  }
+
+  // シフト締切設定
+  const handleSetDeadline = async () => {
+    if (!deadlineInput) {
+      alert('締切日を選択してください')
+      return
+    }
+
+    try {
+      const year = currentMonth.getFullYear()
+      const month = currentMonth.getMonth() + 1
+
+      const res = await fetch('/api/admin/shift-deadline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          year,
+          month,
+          deadlineDate: deadlineInput,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        setDeadline(new Date(deadlineInput))
+        setShowDeadlineDialog(false)
+        alert('シフト締切を設定しました')
+      } else {
+        alert(data.error || 'シフト締切の設定に失敗しました')
+      }
+    } catch (error) {
+      console.error('Set deadline error:', error)
+      alert('シフト締切の設定中にエラーが発生しました')
+    }
+  }
+
+  // シフト締切削除
+  const handleDeleteDeadline = async () => {
+    if (!confirm('シフト締切を削除しますか？')) return
+
+    try {
+      const year = currentMonth.getFullYear()
+      const month = currentMonth.getMonth() + 1
+
+      const res = await fetch(`/api/admin/shift-deadline?year=${year}&month=${month}`, {
+        method: 'DELETE',
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        setDeadline(null)
+        setDeadlineInput('')
+        setShowDeadlineDialog(false)
+        alert('シフト締切を削除しました')
+      } else {
+        alert(data.error || 'シフト締切の削除に失敗しました')
+      }
+    } catch (error) {
+      console.error('Delete deadline error:', error)
+      alert('シフト締切の削除中にエラーが発生しました')
     }
   }
 
@@ -389,7 +472,7 @@ export default function AdminShiftsPage() {
                     </Button>
                   </div>
 
-                  {/* フィルタ */}
+                  {/* フィルタ + 締切ボタン */}
                   <div className="flex gap-2">
                     <Button
                       size="sm"
@@ -411,6 +494,17 @@ export default function AdminShiftsPage() {
                       onClick={() => setCalendarFilter('filled')}
                     >
                       充足済み
+                    </Button>
+                    
+                    {/* 締切設定ボタン */}
+                    <Button
+                      size="sm"
+                      variant={deadline ? 'default' : 'outline'}
+                      onClick={() => setShowDeadlineDialog(true)}
+                      className="ml-2"
+                    >
+                      <CalendarIcon className="h-4 w-4 mr-1" />
+                      {deadline ? `締切: ${format(deadline, 'M/d', { locale: ja })}` : '締切設定'}
                     </Button>
                   </div>
                 </div>
@@ -580,6 +674,76 @@ export default function AdminShiftsPage() {
                       割当
                     </Button>
                     <Button variant="outline" onClick={() => setAssignDialog(null)} className="flex-1">
+                      キャンセル
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* シフト締切設定ダイアログ */}
+        {showDeadlineDialog && (
+          <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md shadow-2xl border-2 border-blue-200 bg-white">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    シフト希望締切設定
+                  </h3>
+                  <button
+                    onClick={() => setShowDeadlineDialog(false)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {format(currentMonth, 'yyyy年M月', { locale: ja })} の締切日
+                    </label>
+                    <Input
+                      type="date"
+                      value={deadlineInput}
+                      onChange={(e) => setDeadlineInput(e.target.value)}
+                      className="w-full"
+                      min={format(currentMonth, 'yyyy-MM-01')}
+                      max={format(endOfMonth(currentMonth), 'yyyy-MM-dd')}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      この日までにスタッフがシフト希望を提出する必要があります
+                    </p>
+                  </div>
+
+                  {deadline && (
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-800">
+                        現在の締切: <strong>{format(deadline, 'yyyy年M月d日', { locale: ja })}</strong>
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-4">
+                    <Button onClick={handleSetDeadline} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                      {deadline ? '締切を更新' : '締切を設定'}
+                    </Button>
+                    {deadline && (
+                      <Button
+                        variant="outline"
+                        onClick={handleDeleteDeadline}
+                        className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                      >
+                        締切を削除
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowDeadlineDialog(false)}
+                      className="flex-1"
+                    >
                       キャンセル
                     </Button>
                   </div>

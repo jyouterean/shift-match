@@ -8,12 +8,12 @@ datasource db {
 }
 
 model Company {
-  id              String         @id @default(cuid())
+  id              String           @id @default(cuid())
   name            String
-  code            String         @unique
-  requireApproval Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  code            String           @unique
+  requireApproval Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   users           User[]
   offices         Office[]
   routes          Route[]
@@ -23,6 +23,7 @@ model Company {
   auditLogs       AuditLog[]
   notifications   Notification[]
   priceTypes      PriceType[]
+  shiftDeadlines  ShiftDeadline[]
 }
 
 model Office {
@@ -252,5 +253,19 @@ model OfficeRequirement {
 
   @@unique([officeId, date])
   @@map("office_requirements")
+}
+
+model ShiftDeadline {
+  id              String   @id @default(cuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  year            Int
+  month           Int
+  deadlineDate    DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([companyId, year, month])
+  @@map("shift_deadlines")
 }
 
