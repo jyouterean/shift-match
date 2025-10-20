@@ -125,11 +125,15 @@ export default function StaffNav() {
                     // カスタムログアウトAPIを呼び出してCookieを削除
                     await fetch('/api/auth/logout', { method: 'POST' })
                     // NextAuthのsignOutを呼び出してセッションをクリア
-                    await signOut({ callbackUrl: '/', redirect: true })
+                    // redirect: falseにしてから手動でリダイレクトすることでページをリロード
+                    await signOut({ redirect: false })
+                    // ページを完全にリロードしてトップページに遷移
+                    window.location.href = '/'
                   } catch (error) {
                     console.error('Logout error:', error)
                     // エラーが発生してもログアウトを実行
-                    await signOut({ callbackUrl: '/', redirect: true })
+                    await signOut({ redirect: false })
+                    window.location.href = '/'
                   }
                 }
               }}
