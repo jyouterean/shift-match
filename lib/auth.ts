@@ -74,7 +74,6 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/auth/signin',
   },
-  trustHost: true, // URLを固定してセッション生成時の不一致を防止
   callbacks: {
     async jwt({ token, user, trigger }) {
       if (user) {
