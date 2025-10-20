@@ -15,6 +15,7 @@ import {
   Search,
   Plus,
   X,
+  Download,
 } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, addMonths, subMonths } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -506,6 +507,22 @@ export default function AdminShiftsPage() {
                       <CalendarIcon className="h-4 w-4 mr-1" />
                       {deadline ? `締切: ${format(deadline, 'M/d', { locale: ja })}` : '締切設定'}
                     </Button>
+                    
+                    {/* エクセル出力ボタン */}
+                    <a
+                      href={`/api/admin/shifts/export-excel?month=${format(currentMonth, 'yyyy-MM')}`}
+                      download
+                      className="ml-2"
+                    >
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Excel出力
+                      </Button>
+                    </a>
                   </div>
                 </div>
 

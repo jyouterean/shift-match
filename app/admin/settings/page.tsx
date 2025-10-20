@@ -139,23 +139,7 @@ export default function AdminSettingsPage() {
         {company && (
           <div className="space-y-6">
             {/* クイックアクセス */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Link href="/admin/shifts/requirements">
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-blue-300">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="rounded-full bg-blue-100 p-3">
-                        <Calendar className="h-6 w-6 text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">シフト必要人数設定</h3>
-                        <p className="text-sm text-gray-600">営業所ごとの必要人数を設定</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-
+            <div className="grid grid-cols-1 gap-4">
               <Link href="/admin/notifications">
                 <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-green-300">
                   <CardContent className="p-6">
