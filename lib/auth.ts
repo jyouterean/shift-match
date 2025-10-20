@@ -4,6 +4,7 @@ import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
+  debug: process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_DEBUG === 'true',
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -13,51 +14,75 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         try {
+          console.log('🟢 authorize開始:', new Date().toISOString())
+          
           // 入力チェック
           if (!credentials?.email || !credentials?.password) {
-            console.log('❌ 認証失敗: メールアドレスまたはパスワードが未入力')
+            console.warn('❌ 認証失敗: メールアドレスまたはパスワードが未入力')
             return null
           }
 
           console.log('🔍 ユーザー検索中:', credentials.email)
 
           // ユーザー検索
+          console.log('📊 DB接続確認中...')
           const user = await prisma.user.findUnique({
             where: { email: credentials.email },
             include: { company: true, office: true }
           })
 
-          if (!user || !user.password) {
-            console.log('❌ 認証失敗: ユーザーが見つかりません')
+          if (!user) {
+            console.warn('❌ 認証失敗: ユーザーが存在しません -', credentials.email)
             return null
           }
 
-          console.log('✅ ユーザー発見:', user.email, 'ステータス:', user.status)
+          if (!user.password) {
+            console.warn('❌ 認証失敗: パスワードが設定されていません -', credentials.email)
+            return null
+          }
+
+          console.log('✅ ユーザー発見:', {
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            hasCompany: !!user.company,
+            hasOffice: !!user.office
+          })
 
           // パスワード検証
+          console.log('🔐 パスワード検証中...')
           const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
           if (!isPasswordValid) {
-            console.log('❌ 認証失敗: パスワードが正しくありません')
+            console.warn('❌ 認証失敗: パスワードが正しくありません -', credentials.email)
             return null
           }
 
+          console.log('✅ パスワード検証成功')
+
           // ユーザーステータスチェック
           if (user.status !== 'ACTIVE') {
-            console.log('❌ 認証失敗: アカウントが無効です (status:', user.status, ')')
+            console.warn('❌ 認証失敗: アカウントが無効 -', {
+              email: credentials.email,
+              status: user.status
+            })
             return null
           }
 
           // 会社情報チェック
           if (!user.company) {
-            console.log('❌ 認証失敗: 会社情報が見つかりません')
+            console.warn('❌ 認証失敗: 会社情報が見つかりません -', credentials.email)
             return null
           }
 
-          console.log('✅ 認証成功:', user.email, 'Role:', user.role)
+          console.log('✅ 認証成功:', {
+            email: user.email,
+            role: user.role,
+            companyId: user.companyId
+          })
 
           // 成功時のユーザー情報を返す
-          return {
+          const userInfo = {
             id: user.id,
             email: user.email,
             name: user.name,
@@ -65,6 +90,9 @@ export const authOptions: NextAuthOptions = {
             companyId: user.companyId,
             officeId: user.officeId || undefined,
           }
+
+          console.log('📤 返却するユーザー情報:', userInfo)
+          return userInfo
         } catch (error) {
           console.error('🔥 authorize()内でエラー発生:', error)
           return null
@@ -93,11 +121,24 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/auth/signin',
-    error: '/auth/error',
   },
   callbacks: {
     async jwt({ token, user, trigger }) {
+      console.log('🎫 JWT callback:', { 
+        hasUser: !!user, 
+        trigger, 
+        tokenId: token.id,
+        userId: user?.id 
+      })
+      
       if (user) {
+        console.log('📝 JWTトークン作成中:', {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          companyId: user.companyId
+        })
+        
         token.id = user.id
         token.role = user.role
         token.companyId = user.companyId
@@ -105,22 +146,36 @@ export const authOptions: NextAuthOptions = {
         // トークン発行時刻を記録
         token.iat = Math.floor(Date.now() / 1000)
         token.exp = Math.floor(Date.now() / 1000) + (15 * 24 * 60 * 60) // 15日後
+        
+        console.log('✅ JWTトークン作成完了')
       }
       
       // トークンリフレッシュ時も有効期限を延長
       if (trigger === 'update') {
+        console.log('🔄 JWTトークン更新中')
         token.exp = Math.floor(Date.now() / 1000) + (15 * 24 * 60 * 60)
       }
       
       return token
     },
     async session({ session, token }) {
+      console.log('🔐 Session callback:', {
+        hasToken: !!token,
+        tokenId: token.id
+      })
+      
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
         session.user.companyId = token.companyId as string
         session.user.officeId = token.officeId as string | undefined
+        
+        console.log('✅ セッション作成完了:', {
+          id: session.user.id,
+          role: session.user.role
+        })
       }
+      
       return session
     }
   },
