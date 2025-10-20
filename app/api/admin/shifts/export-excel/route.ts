@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // 該当月のシフトを取得
+    // 該当月のシフトを取得（予定・進行中・完了のみ、キャンセルを除外）
     const shifts = await prisma.shift.findMany({
       where: {
         companyId: session.user.companyId,
@@ -55,7 +55,9 @@ export async function GET(request: NextRequest) {
           gte: start,
           lte: end,
         },
-        status: 'CONFIRMED',
+        status: {
+          not: 'CANCELLED',
+        },
       },
       include: {
         user: {
