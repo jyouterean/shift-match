@@ -47,8 +47,17 @@ export default function SignInPage() {
         return
       }
 
-      // ログイン成功 - useEffectが自動的にリダイレクトを処理
-      // isLoadingはtrueのままにして、useEffectによるリダイレクトを待つ
+      if (result?.ok) {
+        // ログイン成功 - セッション情報を取得してリダイレクト
+        // useEffectによる自動リダイレクトを待つ
+        // isLoadingはtrueのままにして、リダイレクトを示す
+        console.log('Login successful, waiting for session...')
+        return
+      }
+
+      // 予期しないエラー
+      setError('ログインに失敗しました')
+      setIsLoading(false)
     } catch (error) {
       console.error('Login error:', error)
       setError('ログインに失敗しました')

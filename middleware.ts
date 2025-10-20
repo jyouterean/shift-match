@@ -1,5 +1,5 @@
 import { withAuth } from 'next-auth/middleware'
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 
 // Edge Runtime対応：cryptoの代わりにWeb Crypto APIを使用
 function generateNonce(): string {
@@ -27,7 +27,24 @@ function generateCSP(nonce: string): string {
 }
 
 export default withAuth(
-  function middleware(req) {
+  function middleware(req: NextRequest) {
+    // URL統一処理：vercel.appドメインと独自ドメインの混在を防止
+    const canonicalUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL
+    if (canonicalUrl) {
+      const canonical = new URL(canonicalUrl)
+      const requestUrl = req.nextUrl
+      
+      // HTTPSへの強制リダイレクト、または正規ドメインへのリダイレクト
+      if (
+        (requestUrl.protocol !== 'https:' && process.env.NODE_ENV === 'production') ||
+        (requestUrl.host !== canonical.host && process.env.NODE_ENV === 'production')
+      ) {
+        const redirectUrl = new URL(req.url)
+        redirectUrl.protocol = 'https:'
+        redirectUrl.host = canonical.host
+        return NextResponse.redirect(redirectUrl, 308)
+      }
+    }
     const token = req.nextauth.token
     const pathname = req.nextUrl.pathname
 
