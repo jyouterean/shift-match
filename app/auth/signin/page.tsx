@@ -34,33 +34,68 @@ export default function SignInPage() {
     setError('')
     setIsLoading(true)
 
+    console.log('🔐 ログイン処理開始...')
+
     try {
-      const result = await signIn('credentials', {
+      // タイムアウト処理を追加（30秒）
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('タイムアウト')), 30000)
+      )
+
+      const signInPromise = signIn('credentials', {
         email,
         password,
         redirect: false,
       })
 
-      if (result?.error) {
-        setError(result.error)
+      const result = await Promise.race([signInPromise, timeoutPromise]) as any
+
+      console.log('📝 signIn結果:', result)
+
+      // resultがundefinedの場合
+      if (!result) {
+        console.error('❌ resultがundefinedです')
+        setError('認証サーバーに接続できませんでした')
         setIsLoading(false)
         return
       }
 
-      if (result?.ok) {
-        // ログイン成功 - セッション情報を取得してリダイレクト
-        // useEffectによる自動リダイレクトを待つ
-        // isLoadingはtrueのままにして、リダイレクトを示す
-        console.log('Login successful, waiting for session...')
+      // エラーがある場合
+      if (result.error) {
+        console.error('❌ ログインエラー:', result.error)
+        
+        // エラーメッセージをユーザーフレンドリーに変換
+        let errorMessage = result.error
+        if (result.error === 'CredentialsSignin') {
+          errorMessage = 'メールアドレスまたはパスワードが正しくありません'
+        }
+        
+        setError(errorMessage)
+        setIsLoading(false)
         return
       }
 
-      // 予期しないエラー
-      setError('ログインに失敗しました')
+      // ログイン成功
+      if (result.ok) {
+        console.log('✅ ログイン成功、セッション情報を取得中...')
+        // useEffectによる自動リダイレクトを待つ
+        // isLoadingはtrueのままにして、リダイレクトを示す
+        return
+      }
+
+      // 予期しないレスポンス
+      console.error('❌ 予期しないレスポンス:', result)
+      setError('ログインに失敗しました。もう一度お試しください。')
       setIsLoading(false)
     } catch (error) {
-      console.error('Login error:', error)
-      setError('ログインに失敗しました')
+      console.error('🔥 ログイン処理中にエラー:', error)
+      
+      if (error instanceof Error && error.message === 'タイムアウト') {
+        setError('接続がタイムアウトしました。もう一度お試しください。')
+      } else {
+        setError('ログインに失敗しました。もう一度お試しください。')
+      }
+      
       setIsLoading(false)
     }
   }

@@ -12,42 +12,62 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('メールアドレスとパスワードを入力してください')
-        }
+        try {
+          // 入力チェック
+          if (!credentials?.email || !credentials?.password) {
+            console.log('❌ 認証失敗: メールアドレスまたはパスワードが未入力')
+            return null
+          }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-          include: { company: true, office: true }
-        })
+          console.log('🔍 ユーザー検索中:', credentials.email)
 
-        if (!user || !user.password) {
-          throw new Error('ユーザーが見つかりません')
-        }
+          // ユーザー検索
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+            include: { company: true, office: true }
+          })
 
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+          if (!user || !user.password) {
+            console.log('❌ 認証失敗: ユーザーが見つかりません')
+            return null
+          }
 
-        if (!isPasswordValid) {
-          throw new Error('パスワードが正しくありません')
-        }
+          console.log('✅ ユーザー発見:', user.email, 'ステータス:', user.status)
 
-        // ユーザーステータスチェック
-        if (user.status !== 'ACTIVE') {
-          throw new Error('このアカウントは現在利用できません')
-        }
+          // パスワード検証
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
-        // 会社情報チェック
-        if (!user.company) {
-          throw new Error('会社情報が見つかりません。管理者にお問い合わせください。')
-        }
+          if (!isPasswordValid) {
+            console.log('❌ 認証失敗: パスワードが正しくありません')
+            return null
+          }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          companyId: user.companyId,
-          officeId: user.officeId || undefined,
+          // ユーザーステータスチェック
+          if (user.status !== 'ACTIVE') {
+            console.log('❌ 認証失敗: アカウントが無効です (status:', user.status, ')')
+            return null
+          }
+
+          // 会社情報チェック
+          if (!user.company) {
+            console.log('❌ 認証失敗: 会社情報が見つかりません')
+            return null
+          }
+
+          console.log('✅ 認証成功:', user.email, 'Role:', user.role)
+
+          // 成功時のユーザー情報を返す
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            companyId: user.companyId,
+            officeId: user.officeId || undefined,
+          }
+        } catch (error) {
+          console.error('🔥 authorize()内でエラー発生:', error)
+          return null
         }
       }
     })
@@ -73,6 +93,7 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/auth/signin',
+    error: '/auth/error',
   },
   callbacks: {
     async jwt({ token, user, trigger }) {
