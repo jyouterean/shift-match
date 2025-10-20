@@ -76,7 +76,10 @@ export default withAuth(
         if (
           pathname.startsWith('/auth/') || 
           pathname === '/' ||
-          pathname === '/admin/secret' // 裏モードは認証不要
+          pathname === '/admin/secret' || // 裏モードは認証不要
+          pathname.startsWith('/api/companies/validate') || // 会社コード検証は認証不要
+          pathname.startsWith('/api/companies/join') || // 会社参加は認証不要
+          pathname === '/api/companies' // 会社作成は認証不要
         ) {
           return true
         }

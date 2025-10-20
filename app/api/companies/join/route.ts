@@ -38,20 +38,43 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { companyCode, name, email, password, phone } = joinCompanySchema.parse(body)
+    const { companyCode: rawCompanyCode, name, email, password, phone } = joinCompanySchema.parse(body)
 
-    // 会社の存在確認
-    const company = await prisma.company.findUnique({
+    // 会社コードを正規化（前後の空白削除、大文字変換）
+    const companyCode = rawCompanyCode.trim().toUpperCase()
+
+    console.log('Join company request:', { rawCompanyCode, normalized: companyCode, email })
+
+    // 会社の存在確認（まず正規化されたコードで検索）
+    let company = await prisma.company.findUnique({
       where: { code: companyCode },
       include: { offices: true },
     })
 
+    // 見つからない場合は、大文字小文字を無視して検索
     if (!company) {
+      const allCompanies = await prisma.company.findMany({
+        include: { offices: true },
+      })
+      
+      company = allCompanies.find(
+        c => c.code.trim().toUpperCase() === companyCode
+      ) || null
+
+      if (company) {
+        console.log('Company found with case-insensitive match:', company.code)
+      }
+    }
+
+    if (!company) {
+      console.log('Company not found for code:', companyCode)
       return NextResponse.json(
-        { error: '会社が見つかりません' },
+        { error: '会社が見つかりません。会社コードを確認してください。' },
         { status: 404 }
       )
     }
+
+    console.log('Company found:', { id: company.id, name: company.name, code: company.code })
 
     // メールアドレスの重複チェック
     const existingUser = await prisma.user.findUnique({

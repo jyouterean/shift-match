@@ -35,7 +35,10 @@ export default function JoinPage() {
   // 会社コードのリアルタイム検証
   useEffect(() => {
     const validateCompanyCode = async () => {
-      if (formData.companyCode.length < 4) {
+      // 入力値を正規化（前後の空白削除、大文字変換）
+      const normalizedCode = formData.companyCode.trim().toUpperCase()
+      
+      if (normalizedCode.length < 4) {
         setCodeValidation({ isValid: null, companyName: null, isChecking: false })
         return
       }
@@ -43,7 +46,8 @@ export default function JoinPage() {
       setCodeValidation({ isValid: null, companyName: null, isChecking: true })
 
       try {
-        const response = await fetch(`/api/companies/validate?code=${formData.companyCode}`)
+        // 正規化されたコードで検証
+        const response = await fetch(`/api/companies/validate?code=${encodeURIComponent(normalizedCode)}`)
         const data = await response.json()
 
         if (data.valid) {
@@ -60,6 +64,7 @@ export default function JoinPage() {
           })
         }
       } catch (error) {
+        console.error('Company code validation error:', error)
         setCodeValidation({
           isValid: false,
           companyName: null,
@@ -169,9 +174,9 @@ export default function JoinPage() {
                   <Input
                     id="companyCode"
                     type="text"
-                    placeholder="例: COMP1234"
+                    placeholder="例: A9FJAY9I"
                     value={formData.companyCode}
-                    onChange={(e) => setFormData({ ...formData, companyCode: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, companyCode: e.target.value.toUpperCase() })}
                     required
                     disabled={isLoading}
                     className={`pr-10 ${getCodeBorderColor()}`}
@@ -188,6 +193,9 @@ export default function JoinPage() {
                     )}
                   </div>
                 </div>
+                <p className="text-xs text-gray-500">
+                  管理者から共有された8桁の会社コードを入力してください
+                </p>
                 {codeValidation.companyName && (
                   <p className="text-sm text-green-600 flex items-center gap-1">
                     <CheckCircle className="h-4 w-4" />
@@ -195,7 +203,9 @@ export default function JoinPage() {
                   </p>
                 )}
                 {codeValidation.isValid === false && formData.companyCode.length >= 4 && (
-                  <p className="text-sm text-red-600">会社が見つかりません</p>
+                  <p className="text-sm text-red-600">
+                    会社が見つかりません。会社コードを確認してください。
+                  </p>
                 )}
               </div>
 
