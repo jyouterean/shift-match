@@ -7,6 +7,7 @@
 import { useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import React from 'react'
 
 /**
  * ページ認証フック（管理者用）
