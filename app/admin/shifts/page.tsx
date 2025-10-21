@@ -522,19 +522,20 @@ export default function AdminShiftsPage() {
                       {deadline ? `締切: ${format(deadline, 'M/d', { locale: ja })}` : '締切設定'}
                     </Button>
                     
-                    {/* エクセル出力ボタン */}
+                    {/* シフト確認（Excel出力）ボタン */}
                     <a
                       href={`/api/admin/shifts/export-excel?month=${format(currentMonth, 'yyyy-MM')}`}
-                      download
+                      download={`シフト表_${format(currentMonth, 'yyyy年M月', { locale: ja })}.csv`}
                       className="ml-2"
                     >
                       <Button
                         size="sm"
                         variant="outline"
-                        className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-300 font-semibold"
+                        title="現在のシフトをExcelで確認・ダウンロード"
                       >
                         <Download className="h-4 w-4 mr-1" />
-                        Excel出力
+                        シフト確認
                       </Button>
                     </a>
                   </div>
