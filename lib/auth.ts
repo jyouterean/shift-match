@@ -5,7 +5,6 @@ import bcrypt from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
-  trustHost: true, // URL混在によるエラーを防止
   debug: process.env.NODE_ENV === 'development', // 開発環境でデバッグログを出力
   providers: [
     CredentialsProvider({
