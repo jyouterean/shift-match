@@ -113,6 +113,9 @@ model Shift {
   route     Route?       @relation(fields: [routeId], references: [id], onDelete: SetNull)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
+  
+  @@index([companyId, date, status])
+  @@index([officeId, date])
 }
 
 enum ReportStatus {
@@ -237,6 +240,7 @@ model ShiftAvailability {
   updatedAt DateTime           @updatedAt
 
   @@unique([userId, date])
+  @@index([date, status])
 }
 
 model OfficeRequirement {
@@ -252,6 +256,7 @@ model OfficeRequirement {
   updatedAt       DateTime @updatedAt
 
   @@unique([officeId, date])
+  @@index([date])
   @@map("office_requirements")
 }
 

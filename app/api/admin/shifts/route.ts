@@ -129,30 +129,29 @@ async function getMonthSummary(companyId: string, month: string) {
     },
   })
 
-  // 月内のシフト（割当）を取得
-  const shifts = await prisma.shift.findMany({
+  // 月内のシフト（割当）を取得 - 集約して取得（高速化）
+  const shifts = await prisma.shift.groupBy({
+    by: ['officeId', 'date'],
     where: {
       companyId,
       date: { gte: startOfMonth, lte: endOfMonth },
       status: { in: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED'] },
     },
-    select: {
-      officeId: true,
-      date: true,
+    _count: {
       userId: true,
     },
   })
 
-  // 月内の希望提出を取得
-  const availabilities = await prisma.shiftAvailability.findMany({
+  // 月内の希望提出を取得 - 日付のみで集約（高速化）
+  const availabilitiesByDate = await prisma.shiftAvailability.groupBy({
+    by: ['date'],
     where: {
       user: { companyId },
       date: { gte: startOfMonth, lte: endOfMonth },
       status: 'AVAILABLE',
     },
-    select: {
+    _count: {
       date: true,
-      userId: true,
     },
   })
 
@@ -182,14 +181,15 @@ async function getMonthSummary(companyId: string, month: string) {
       )
       const required = req?.requiredCount || 0
 
-      // その日の割当人数
-      const assigned = shifts.filter(
+      // その日の割当人数（集約済みデータから取得）
+      const shiftRecord = shifts.find(
         s => s.officeId === office.id && 
              s.date.toISOString().split('T')[0] === dateStr
-      ).length
+      )
+      const assigned = shiftRecord?._count.userId || 0
 
-      // その日の希望提出の有無
-      const hasApplications = availabilities.some(
+      // その日の希望提出の有無（集約済みデータから取得）
+      const hasApplications = availabilitiesByDate.some(
         a => a.date.toISOString().split('T')[0] === dateStr
       )
 

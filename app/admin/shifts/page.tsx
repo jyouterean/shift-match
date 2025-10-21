@@ -105,6 +105,9 @@ export default function AdminShiftsPage() {
     date: string
     officeId: string
   } | null>(null)
+  
+  // 割当処理中フラグ（重複防止）
+  const [isAssigning, setIsAssigning] = useState(false)
 
   // 認証チェック
   useEffect(() => {
@@ -119,7 +122,7 @@ export default function AdminShiftsPage() {
     }
   }, [session, status, router])
 
-  // データ取得
+  // データ取得（並列化で高速化）
   const fetchData = useCallback(async () => {
     setIsLoading(true)
     setError(null)
@@ -128,28 +131,33 @@ export default function AdminShiftsPage() {
       const year = currentMonth.getFullYear()
       const monthNum = currentMonth.getMonth() + 1
       
-      // 月サマリー取得
-      const summaryRes = await fetch(`/api/admin/shifts?month=${month}`)
-      const summaryData = await summaryRes.json()
+      // 3つのAPIを並列取得（高速化）
+      const [summaryRes, availRes, deadlineRes] = await Promise.all([
+        fetch(`/api/admin/shifts?month=${month}`),
+        fetch(`/api/admin/availability?month=${month}`),
+        fetch(`/api/admin/shift-deadline?year=${year}&month=${monthNum}`)
+      ])
       
+      // レスポンスを並列パース
+      const [summaryData, availData, deadlineData] = await Promise.all([
+        summaryRes.json(),
+        availRes.json(),
+        deadlineRes.json()
+      ])
+      
+      // 月サマリー
       if (summaryRes.ok) {
         setDays(summaryData.days || [])
       } else {
         setError(summaryData.error || 'データの取得に失敗しました')
       }
 
-      // 個人の出勤可能日取得
-      const availRes = await fetch(`/api/admin/availability?month=${month}`)
-      const availData = await availRes.json()
-      
+      // 個人の出勤可能日
       if (availRes.ok) {
         setAvailabilities(availData.availabilities || [])
       }
 
-      // シフト締切取得
-      const deadlineRes = await fetch(`/api/admin/shift-deadline?year=${year}&month=${monthNum}`)
-      const deadlineData = await deadlineRes.json()
-      
+      // シフト締切
       if (deadlineRes.ok && deadlineData.deadline) {
         setDeadline(new Date(deadlineData.deadline.deadlineDate))
         setDeadlineInput(format(new Date(deadlineData.deadline.deadlineDate), 'yyyy-MM-dd'))
@@ -309,9 +317,11 @@ export default function AdminShiftsPage() {
     }
   }
 
-  // 割当実行
+  // 割当実行（重複防止＋楽観的UI更新）
   const handleAssign = async () => {
-    if (!assignDialog || !selectedMember) return
+    if (!assignDialog || !selectedMember || isAssigning) return
+
+    setIsAssigning(true)
 
     try {
       const res = await fetch('/api/admin/shifts/assignment', {
@@ -326,14 +336,18 @@ export default function AdminShiftsPage() {
 
       const data = await res.json()
       if (res.ok) {
-        alert(data.message || 'シフトが割り当てられました')
+        // ダイアログを即座に閉じて反応速度を向上
         setAssignDialog(null)
-        fetchData() // データを再取得
+        
+        // バックグラウンドでデータを再取得（UIブロックなし）
+        fetchData()
       } else {
         alert(data.error || '割当に失敗しました')
       }
     } catch (err) {
       alert('ネットワークエラーが発生しました')
+    } finally {
+      setIsAssigning(false)
     }
   }
 
@@ -678,10 +692,19 @@ export default function AdminShiftsPage() {
                   </div>
 
                   <div className="flex gap-3 pt-4">
-                    <Button onClick={handleAssign} className="flex-1 bg-blue-600 hover:bg-blue-700">
-                      割当
+                    <Button 
+                      onClick={handleAssign} 
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      disabled={isAssigning}
+                    >
+                      {isAssigning ? '割当中...' : '割当'}
                     </Button>
-                    <Button variant="outline" onClick={() => setAssignDialog(null)} className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setAssignDialog(null)} 
+                      className="flex-1"
+                      disabled={isAssigning}
+                    >
                       キャンセル
                     </Button>
                   </div>
