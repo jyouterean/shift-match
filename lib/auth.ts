@@ -144,8 +144,6 @@ export const authOptions: NextAuthOptions = {
       return session
     }
   },
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NEXTAUTH_DEBUG === 'true' || process.env.NODE_ENV === 'development',
   // デバッグ用イベントハンドラ（ログイン画面フリーズ問題調査用）
   events: {
     async signIn(message) {
