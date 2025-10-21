@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { signIn, useSession } from 'next-auth/react'
+import { signIn, useSession, getCsrfToken } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,17 @@ export default function SignInPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [csrfToken, setCsrfToken] = useState<string | undefined>(undefined)
+
+  // CSRFトークンを取得
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+      const token = await getCsrfToken()
+      console.log('[login] CSRF token取得:', token ? '成功' : '失敗')
+      setCsrfToken(token)
+    }
+    fetchCsrfToken()
+  }, [])
 
   // セッションがある場合は自動的にリダイレクト
   useEffect(() => {
@@ -34,7 +45,13 @@ export default function SignInPage() {
     setError('')
     setIsLoading(true)
 
-    console.log('🔐 ログイン処理開始...')
+    console.log('[login] ログイン処理開始... email:', email)
+    console.log('[login] CSRF token:', csrfToken ? '有効' : '無効')
+
+    // CSRFトークンがない場合は警告
+    if (!csrfToken) {
+      console.warn('[login] ⚠️ CSRF tokenが取得できていません')
+    }
 
     try {
       // タイムアウト処理を追加（30秒）
@@ -45,6 +62,7 @@ export default function SignInPage() {
       const signInPromise = signIn('credentials', {
         email,
         password,
+        csrfToken, // CSRFトークンを追加
         redirect: false,
       })
 

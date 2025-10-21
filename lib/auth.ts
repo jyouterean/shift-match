@@ -4,6 +4,9 @@ import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true, // URL混在によるエラーを防止
+  debug: process.env.NODE_ENV === 'development', // 開発環境でデバッグログを出力
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -12,49 +15,64 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
+        const startTime = Date.now()
+        console.log('[auth] authorize start:', credentials?.email, 'timestamp:', new Date().toISOString())
+        
         try {
           // 入力チェック
           if (!credentials?.email || !credentials?.password) {
-            console.log('❌ 認証失敗: メールアドレスまたはパスワードが未入力')
+            console.log('[auth] ❌ 認証失敗: メールアドレスまたはパスワードが未入力')
             return null
           }
 
-          console.log('🔍 ユーザー検索中:', credentials.email)
+          console.log('[auth] 🔍 ユーザー検索中:', credentials.email)
 
-          // ユーザー検索
-          const user = await prisma.user.findUnique({
+          // タイムアウト付きユーザー検索（10秒）
+          const userPromise = prisma.user.findUnique({
             where: { email: credentials.email },
             include: { company: true, office: true }
           })
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('DB query timeout')), 10000)
+          )
+
+          const user = await Promise.race([userPromise, timeoutPromise]) as any
 
           if (!user || !user.password) {
-            console.log('❌ 認証失敗: ユーザーが見つかりません')
+            console.log('[auth] ❌ 認証失敗: ユーザーが見つかりません')
             return null
           }
 
-          console.log('✅ ユーザー発見:', user.email, 'ステータス:', user.status)
+          console.log('[auth] ✅ ユーザー発見:', user.email, 'ステータス:', user.status)
 
-          // パスワード検証
-          const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+          // タイムアウト付きパスワード検証（5秒）
+          const bcryptPromise = bcrypt.compare(credentials.password, user.password)
+          const bcryptTimeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('bcrypt timeout')), 5000)
+          )
+
+          const isPasswordValid = await Promise.race([bcryptPromise, bcryptTimeoutPromise]) as boolean
 
           if (!isPasswordValid) {
-            console.log('❌ 認証失敗: パスワードが正しくありません')
+            console.log('[auth] ❌ 認証失敗: パスワードが正しくありません')
             return null
           }
 
           // ユーザーステータスチェック
           if (user.status !== 'ACTIVE') {
-            console.log('❌ 認証失敗: アカウントが無効です (status:', user.status, ')')
+            console.log('[auth] ❌ 認証失敗: アカウントが無効です (status:', user.status, ')')
             return null
           }
 
           // 会社情報チェック
           if (!user.company) {
-            console.log('❌ 認証失敗: 会社情報が見つかりません')
+            console.log('[auth] ❌ 認証失敗: 会社情報が見つかりません')
             return null
           }
 
-          console.log('✅ 認証成功:', user.email, 'Role:', user.role)
+          const duration = Date.now() - startTime
+          console.log('[auth] ✅ 認証成功:', user.email, 'Role:', user.role, '処理時間:', duration, 'ms')
 
           // 成功時のユーザー情報を返す
           return {
@@ -66,8 +84,12 @@ export const authOptions: NextAuthOptions = {
             officeId: user.officeId || undefined,
           }
         } catch (error) {
-          console.error('🔥 authorize()内でエラー発生:', error)
+          const duration = Date.now() - startTime
+          console.error('[auth] 🔥 authorize()内でエラー発生:', error, '処理時間:', duration, 'ms')
           return null
+        } finally {
+          const duration = Date.now() - startTime
+          console.log('[auth] authorize end, 総処理時間:', duration, 'ms')
         }
       }
     })
