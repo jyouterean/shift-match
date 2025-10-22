@@ -395,8 +395,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: '権限がありません' }, { status: 403 })
     }
 
+    // IDをクエリパラメータまたはボディから取得
     const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
+    let id = searchParams.get('id')
+    
+    if (!id) {
+      const body = await request.json()
+      id = body.id
+    }
 
     if (!id) {
       return NextResponse.json({ error: 'IDは必須です' }, { status: 400 })

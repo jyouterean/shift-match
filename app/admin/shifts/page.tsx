@@ -108,6 +108,16 @@ export default function AdminShiftsPage() {
   
   // 割当処理中フラグ（重複防止）
   const [isAssigning, setIsAssigning] = useState(false)
+  
+  // 日別シフト詳細ダイアログ
+  const [dayDetailDialog, setDayDetailDialog] = useState<{
+    open: boolean
+    date: string
+    shifts: any[]
+  } | null>(null)
+  
+  // Excelプレビューダイアログ
+  const [showExcelPreview, setShowExcelPreview] = useState(false)
 
   // 認証チェック
   useEffect(() => {
@@ -232,15 +242,14 @@ export default function AdminShiftsPage() {
   }, [days, calendarFilter])
 
   // 日付セルのクリック
-  const handleDayClick = (dateStr: string) => {
+  const handleDayClick = async (dateStr: string) => {
     const day = days.find(d => d.date === dateStr)
     if (!day) return
 
-    // 選択中のメンバーがその日を「可能」としている場合、割当ダイアログを開く
+    // 選択中のメンバーがいる場合は割当ダイアログ
     if (selectedMember) {
       const member = availabilities.find(a => a.memberId === selectedMember)
       if (member && member.availableDates.includes(dateStr)) {
-        // デフォルトの営業所を選択
         const defaultOffice = day.offices.find(o => o.status === 'SHORTAGE') || day.offices[0]
         if (defaultOffice) {
           setAssignDialog({
@@ -250,6 +259,58 @@ export default function AdminShiftsPage() {
           })
         }
       }
+    } else {
+      // メンバー未選択の場合は日別シフト詳細を表示
+      await fetchDayShifts(dateStr)
+    }
+  }
+  
+  // 日別シフト詳細を取得
+  const fetchDayShifts = async (dateStr: string) => {
+    try {
+      const res = await fetch(`/api/admin/shifts?startDate=${dateStr}&endDate=${dateStr}`)
+      const data = await res.json()
+      
+      if (res.ok) {
+        setDayDetailDialog({
+          open: true,
+          date: dateStr,
+          shifts: data.shifts || []
+        })
+      } else {
+        alert('シフト情報の取得に失敗しました')
+      }
+    } catch (error) {
+      console.error('Fetch day shifts error:', error)
+      alert('エラーが発生しました')
+    }
+  }
+  
+  // シフトを削除
+  const handleDeleteShift = async (shiftId: string) => {
+    if (!confirm('このシフトを削除してもよろしいですか？')) return
+    
+    try {
+      const res = await fetch('/api/admin/shifts', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: shiftId })
+      })
+      
+      if (res.ok) {
+        // ダイアログ内のシフトリストを更新
+        if (dayDetailDialog) {
+          await fetchDayShifts(dayDetailDialog.date)
+        }
+        // カレンダーデータも再取得
+        fetchData()
+      } else {
+        const data = await res.json()
+        alert(data.error || 'シフトの削除に失敗しました')
+      }
+    } catch (error) {
+      console.error('Delete shift error:', error)
+      alert('エラーが発生しました')
     }
   }
 
@@ -523,21 +584,16 @@ export default function AdminShiftsPage() {
                     </Button>
                     
                     {/* シフト確認（Excel出力）ボタン */}
-                    <a
-                      href={`/api/admin/shifts/export-excel?month=${format(currentMonth, 'yyyy-MM')}`}
-                      download={`シフト表_${format(currentMonth, 'yyyy年M月', { locale: ja })}.csv`}
-                      className="ml-2"
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="ml-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-300 font-semibold"
+                      title="シフト表をプレビュー・Excel出力"
+                      onClick={() => setShowExcelPreview(true)}
                     >
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-300 font-semibold"
-                        title="現在のシフトをExcelで確認・ダウンロード"
-                      >
-                        <Download className="h-4 w-4 mr-1" />
-                        シフト確認
-                      </Button>
-                    </a>
+                      <Download className="h-4 w-4 mr-1" />
+                      シフト確認
+                    </Button>
                   </div>
                 </div>
 
@@ -710,6 +766,166 @@ export default function AdminShiftsPage() {
                     </Button>
                   </div>
                 </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* 日別シフト詳細ダイアログ */}
+        {dayDetailDialog && (
+          <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-3xl shadow-2xl border-2 border-blue-200 bg-white max-h-[80vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {format(new Date(dayDetailDialog.date), 'yyyy年M月d日(E)', { locale: ja })} のシフト
+                  </h3>
+                  <button
+                    onClick={() => setDayDetailDialog(null)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+
+                {dayDetailDialog.shifts.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <Users className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                    <p>この日のシフトはまだ登録されていません</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {dayDetailDialog.shifts.map((shift) => (
+                      <div
+                        key={shift.id}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="font-semibold text-gray-900">{shift.user?.name || '不明'}</span>
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                              {shift.office?.name || '未配属'}
+                            </span>
+                            <span className={`px-2 py-1 text-xs rounded ${
+                              shift.status === 'SCHEDULED' ? 'bg-amber-100 text-amber-700' :
+                              shift.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
+                              shift.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {shift.status === 'SCHEDULED' ? '予定' :
+                               shift.status === 'IN_PROGRESS' ? '進行中' :
+                               shift.status === 'COMPLETED' ? '完了' :
+                               shift.status}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {format(new Date(shift.startTime), 'HH:mm')} - {format(new Date(shift.endTime), 'HH:mm')}
+                            {shift.notes && <span className="ml-3 text-gray-500">備考: {shift.notes}</span>}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="ml-4 border-red-300 text-red-600 hover:bg-red-50"
+                          onClick={() => handleDeleteShift(shift.id)}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          削除
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-6 flex justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setDayDetailDialog(null)}
+                  >
+                    閉じる
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Excelプレビューダイアログ */}
+        {showExcelPreview && (
+          <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-5xl shadow-2xl border-2 border-blue-200 bg-white max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="p-6 border-b">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {format(currentMonth, 'yyyy年M月', { locale: ja })} シフト表プレビュー
+                  </h3>
+                  <button
+                    onClick={() => setShowExcelPreview(false)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+                <p className="text-sm text-gray-600">
+                  以下の内容でExcelファイルを出力します。問題なければ「Excel出力」ボタンをクリックしてください。
+                </p>
+              </div>
+
+              <div className="flex-1 overflow-auto p-6">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">📊 出力内容</h4>
+                    <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                      <li>対象月: {format(currentMonth, 'yyyy年M月', { locale: ja })}</li>
+                      <li>スタッフ別の日別シフト一覧</li>
+                      <li>営業所、勤務時間を含む</li>
+                      <li>営業所別の日別人数集計</li>
+                    </ul>
+                  </div>
+
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">📄 ファイル形式</h4>
+                    <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                      <li>形式: CSV (Excel互換)</li>
+                      <li>エンコード: UTF-8 (BOM付き)</li>
+                      <li>ファイル名: シフト表_{format(currentMonth, 'yyyy年M月', { locale: ja })}.csv</li>
+                      <li>文字化け: なし（Excelで直接開けます）</li>
+                    </ul>
+                  </div>
+
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">💡 活用方法</h4>
+                    <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                      <li>ダウンロード後、Excelで開いて確認・編集</li>
+                      <li>印刷して事務所に掲示</li>
+                      <li>スタッフへの共有（PDF変換推奨）</li>
+                      <li>勤怠管理・給与計算の資料として活用</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
+                    <strong>📌 注意:</strong> 個人情報が含まれるため、取り扱いには十分ご注意ください。
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t bg-gray-50 flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowExcelPreview(false)}
+                >
+                  キャンセル
+                </Button>
+                <a
+                  href={`/api/admin/shifts/export-excel?month=${format(currentMonth, 'yyyy-MM')}`}
+                  download={`シフト表_${format(currentMonth, 'yyyy年M月', { locale: ja })}.csv`}
+                  onClick={() => setShowExcelPreview(false)}
+                >
+                  <Button className="bg-emerald-600 hover:bg-emerald-700">
+                    <Download className="h-4 w-4 mr-2" />
+                    Excel出力
+                  </Button>
+                </a>
               </div>
             </Card>
           </div>
