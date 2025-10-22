@@ -57,12 +57,6 @@ export default function StaffReportsPage() {
   const [priceItems, setPriceItems] = useState<{ priceTypeId: string; quantity: number | string }[]>([
     { priceTypeId: '', quantity: '' }
   ])
-  const [showAddPriceTypeForm, setShowAddPriceTypeForm] = useState(false)
-  const [newPriceTypeData, setNewPriceTypeData] = useState({
-    name: '',
-    unitPrice: 0,
-    description: '',
-  })
 
   // データ取得を並列化（高速化）
   const fetchAllData = useCallback(async () => {
@@ -202,29 +196,6 @@ export default function StaffReportsPage() {
       }
       return total
     }, 0)
-  }
-
-  const handleAddPriceType = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const response = await fetch('/api/staff/price-types', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPriceTypeData),
-      })
-
-      const data = await response.json()
-      if (response.ok) {
-        setShowAddPriceTypeForm(false)
-        setNewPriceTypeData({ name: '', unitPrice: 0, description: '' })
-        fetchAllData()
-        alert('新しい単価タイプを追加しました')
-      } else {
-        alert(data.error || '追加に失敗しました')
-      }
-    } catch (error) {
-      alert('ネットワークエラーが発生しました')
-    }
   }
 
   const handleDeleteReport = async (id: string) => {
@@ -498,22 +469,10 @@ export default function StaffReportsPage() {
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between mb-3">
                     <Label>単価明細</Label>
-                    <div className="flex gap-2">
-                      <Button 
-                        type="button" 
-                        size="sm" 
-                        onClick={() => setShowAddPriceTypeForm(true)} 
-                        variant="outline"
-                        className="bg-blue-50 hover:bg-blue-100"
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        単価タイプ追加
-                      </Button>
-                      <Button type="button" size="sm" onClick={addPriceItem} variant="outline">
-                        <Plus className="h-4 w-4 mr-1" />
-                        明細追加
-                      </Button>
-                    </div>
+                    <Button type="button" size="sm" onClick={addPriceItem} variant="outline">
+                      <Plus className="h-4 w-4 mr-1" />
+                      明細追加
+                    </Button>
                   </div>
                   
                   <div className="space-y-2">
@@ -607,67 +566,6 @@ export default function StaffReportsPage() {
         </div>
       )}
 
-      {/* 単価タイプ追加モーダル */}
-      {showAddPriceTypeForm && (
-        <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-          <Card className="w-full max-w-md shadow-2xl border-2 border-blue-200 bg-white">
-            <CardHeader>
-              <CardTitle>新しい単価タイプを追加</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAddPriceType} className="space-y-4">
-                <div>
-                  <Label htmlFor="new-price-name">単価タイプ名 *</Label>
-                  <Input
-                    id="new-price-name"
-                    value={newPriceTypeData.name}
-                    onChange={(e) => setNewPriceTypeData({ ...newPriceTypeData, name: e.target.value })}
-                    required
-                    placeholder="例: 特急配送"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="new-price-unit">単価（円）*</Label>
-                  <Input
-                    id="new-price-unit"
-                    type="number"
-                    min="0"
-                    value={newPriceTypeData.unitPrice}
-                    onChange={(e) => setNewPriceTypeData({ ...newPriceTypeData, unitPrice: parseInt(e.target.value) || 0 })}
-                    required
-                    placeholder="例: 800"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="new-price-desc">説明</Label>
-                  <Input
-                    id="new-price-desc"
-                    value={newPriceTypeData.description}
-                    onChange={(e) => setNewPriceTypeData({ ...newPriceTypeData, description: e.target.value })}
-                    placeholder="例: 急ぎの配送"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
-                    追加
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowAddPriceTypeForm(false)}
-                    className="flex-1"
-                  >
-                    キャンセル
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   )
 }
