@@ -104,6 +104,7 @@ export default function AdminShiftsPage() {
     open: boolean
     date: string
     officeId: string
+    isAvailable: boolean // 希望日かどうか
   } | null>(null)
   
   // 割当処理中フラグ（重複防止）
@@ -168,10 +169,17 @@ export default function AdminShiftsPage() {
       }
 
       // シフト締切
-      if (deadlineRes.ok && deadlineData.deadline) {
-        setDeadline(new Date(deadlineData.deadline.deadlineDate))
-        setDeadlineInput(format(new Date(deadlineData.deadline.deadlineDate), 'yyyy-MM-dd'))
+      if (deadlineRes.ok) {
+        if (deadlineData.deadline) {
+          const deadlineDate = new Date(deadlineData.deadline.deadlineDate)
+          setDeadline(deadlineDate)
+          setDeadlineInput(format(deadlineDate, 'yyyy-MM-dd'))
+        } else {
+          setDeadline(null)
+          setDeadlineInput('')
+        }
       } else {
+        console.error('Failed to fetch deadline:', deadlineData)
         setDeadline(null)
         setDeadlineInput('')
       }
@@ -249,15 +257,19 @@ export default function AdminShiftsPage() {
     // 選択中のメンバーがいる場合は割当ダイアログ
     if (selectedMember) {
       const member = availabilities.find(a => a.memberId === selectedMember)
-      if (member && member.availableDates.includes(dateStr)) {
-        const defaultOffice = day.offices.find(o => o.status === 'SHORTAGE') || day.offices[0]
-        if (defaultOffice) {
-          setAssignDialog({
-            open: true,
-            date: dateStr,
-            officeId: defaultOffice.officeId,
-          })
-        }
+      if (!member) return
+
+      const defaultOffice = day.offices.find(o => o.status === 'SHORTAGE') || day.offices[0]
+      if (defaultOffice) {
+        // 希望日かどうかをチェック
+        const isAvailable = member.availableDates.includes(dateStr)
+        
+        setAssignDialog({
+          open: true,
+          date: dateStr,
+          officeId: defaultOffice.officeId,
+          isAvailable, // 希望日かどうかを記録
+        })
       }
     } else {
       // メンバー未選択の場合は日別シフト詳細を表示
@@ -378,9 +390,21 @@ export default function AdminShiftsPage() {
     }
   }
 
-  // 割当実行（重複防止＋楽観的UI更新）
+  // 割当実行（重複防止＋楽観的UI更新＋希望日確認）
   const handleAssign = async () => {
     if (!assignDialog || !selectedMember || isAssigning) return
+
+    // 希望日でない場合は確認ダイアログを表示
+    if (!assignDialog.isAvailable) {
+      const confirmed = confirm(
+        '⚠️ この日は希望日ではありません。\n' +
+        'それでもシフトに入れてもよろしいですか？'
+      )
+      if (!confirmed) {
+        setIsAssigning(false)
+        return
+      }
+    }
 
     setIsAssigning(true)
 
@@ -723,6 +747,33 @@ export default function AdminShiftsPage() {
                 </div>
 
                 <div className="space-y-4">
+                  {/* 希望日でない場合の警告 */}
+                  {!assignDialog.isAvailable && (
+                    <div className="bg-amber-50 border-2 border-amber-400 rounded-lg p-4 flex items-start gap-3">
+                      <div className="text-amber-600 mt-0.5">⚠️</div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-amber-900 mb-1">希望日ではありません</p>
+                        <p className="text-sm text-amber-700">
+                          この従業員は{format(new Date(assignDialog.date), 'M月d日', { locale: ja })}を希望日として登録していません。
+                          割当を実行する前に確認してください。
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 希望日の場合の確認表示 */}
+                  {assignDialog.isAvailable && (
+                    <div className="bg-emerald-50 border-2 border-emerald-400 rounded-lg p-4 flex items-start gap-3">
+                      <div className="text-emerald-600 mt-0.5">✓</div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-emerald-900 mb-1">希望日です</p>
+                        <p className="text-sm text-emerald-700">
+                          この従業員は{format(new Date(assignDialog.date), 'M月d日', { locale: ja })}を希望日として登録しています。
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">日付</label>
                     <Input value={assignDialog.date} disabled />
