@@ -95,8 +95,8 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: 'jwt',
-    maxAge: 15 * 24 * 60 * 60, // 15 days (15日間)
-    updateAge: 24 * 60 * 60, // 24時間ごとにセッションを更新
+    maxAge: 15 * 60, // 15 minutes (15分)
+    updateAge: 5 * 60, // 5分ごとにセッションを更新
   },
   cookies: {
     sessionToken: {
@@ -124,12 +124,12 @@ export const authOptions: NextAuthOptions = {
         token.officeId = user.officeId
         // トークン発行時刻を記録
         token.iat = Math.floor(Date.now() / 1000)
-        token.exp = Math.floor(Date.now() / 1000) + (15 * 24 * 60 * 60) // 15日後
+        token.exp = Math.floor(Date.now() / 1000) + (15 * 60) // 15分後
       }
       
       // トークンリフレッシュ時も有効期限を延長
       if (trigger === 'update') {
-        token.exp = Math.floor(Date.now() / 1000) + (15 * 24 * 60 * 60)
+        token.exp = Math.floor(Date.now() / 1000) + (15 * 60)
       }
       
       return token
