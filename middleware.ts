@@ -71,20 +71,6 @@ export default withAuth(
     const nonce = generateNonce()
     const response = NextResponse.next()
     
-    // ログイン画面に入る際、古いNextAuth系Cookieが残っているとフリーズの原因になるため削除
-    const pathname = req.nextUrl.pathname
-    if (pathname.startsWith('/auth/signin')) {
-      try {
-        response.cookies.delete('__Secure-next-auth.session-token')
-        response.cookies.delete('next-auth.session-token')
-        response.cookies.delete('__Secure-next-auth.callback-url')
-        response.cookies.delete('next-auth.callback-url')
-        response.cookies.delete('__Secure-next-auth.csrf-token')
-        response.cookies.delete('next-auth.csrf-token')
-      } catch (_) {
-        // noop
-      }
-    }
     
     // CSPをnonceで動的に生成
     response.headers.set('Content-Security-Policy', generateCSP(nonce))

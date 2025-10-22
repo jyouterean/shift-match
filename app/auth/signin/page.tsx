@@ -22,6 +22,22 @@ export default function SignInPage() {
   // CSRFトークンを取得
   useEffect(() => {
     const fetchCsrfToken = async () => {
+      // 既存の古いNextAuth系Cookieがあるとログインが固まる場合があるため、ログイン画面表示時にクライアント側で削除
+      try {
+        const cookieNames = [
+          '__Secure-next-auth.session-token',
+          'next-auth.session-token',
+          '__Secure-next-auth.callback-url',
+          'next-auth.callback-url',
+          '__Secure-next-auth.csrf-token',
+          'next-auth.csrf-token',
+        ]
+        cookieNames.forEach((name) => {
+          // 現在のドメイン/パスのCookieを速やかに失効
+          document.cookie = `${name}=; path=/; max-age=0; secure; samesite=lax`
+        })
+      } catch {}
+
       const token = await getCsrfToken()
       console.log('[login] CSRF token取得:', token ? '成功' : '失敗')
       setCsrfToken(token)
