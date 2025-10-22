@@ -71,15 +71,29 @@ export default function OfficeRequirementsPage() {
     }
   }, [session, status, router])
 
-  // 営業所情報とデータ取得
+  // 営業所情報とデータ取得（並列化で高速化）
   const fetchData = useCallback(async () => {
     if (!officeId) return
     
     setIsLoading(true)
     try {
-      // 営業所情報取得
-      const officeRes = await fetch('/api/admin/offices')
-      const officeData = await officeRes.json()
+      const month = format(currentMonth, 'yyyy-MM')
+      const startDate = format(startOfMonth(currentMonth), 'yyyy-MM-dd')
+      const endDate = format(endOfMonth(currentMonth), 'yyyy-MM-dd')
+
+      // 2つのAPIを並列取得（高速化）
+      const [officeRes, reqRes] = await Promise.all([
+        fetch('/api/admin/offices'),
+        fetch(`/api/admin/office-requirements?officeId=${officeId}&startDate=${startDate}&endDate=${endDate}`)
+      ])
+
+      // レスポンスを並列パース
+      const [officeData, reqData] = await Promise.all([
+        officeRes.json(),
+        reqRes.json()
+      ])
+
+      // 営業所情報
       if (officeRes.ok) {
         const foundOffice = officeData.offices.find((o: Office) => o.id === officeId)
         if (foundOffice) {
@@ -87,15 +101,7 @@ export default function OfficeRequirementsPage() {
         }
       }
 
-      // 月の必要人数取得
-      const month = format(currentMonth, 'yyyy-MM')
-      const [year, monthNum] = month.split('-').map(Number)
-      const startDate = format(startOfMonth(currentMonth), 'yyyy-MM-dd')
-      const endDate = format(endOfMonth(currentMonth), 'yyyy-MM-dd')
-
-      const reqRes = await fetch(`/api/admin/office-requirements?officeId=${officeId}&startDate=${startDate}&endDate=${endDate}`)
-      const reqData = await reqRes.json()
-      
+      // 必要人数
       if (reqRes.ok && reqData.requirements) {
         const reqMap: Record<string, Requirement> = {}
         reqData.requirements.forEach((req: any) => {

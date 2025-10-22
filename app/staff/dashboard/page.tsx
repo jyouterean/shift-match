@@ -7,6 +7,7 @@ import StaffNav from '@/components/staff-nav'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LayoutDashboard, Calendar, FileText, Bell, CheckCircle, Clock, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
+import { DashboardSkeleton } from '@/components/loading-skeleton'
 
 interface DashboardStats {
   totalShifts: number
@@ -54,12 +55,10 @@ export default function StaffDashboardPage() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 via-green-700 to-emerald-500">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-4 border-white mx-auto"></div>
-          <p className="mt-6 text-white text-lg font-medium">読み込み中...</p>
-        </div>
-      </div>
+      <>
+        <StaffNav />
+        <DashboardSkeleton />
+      </>
     )
   }
 

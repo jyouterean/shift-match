@@ -7,6 +7,7 @@ import AdminNav from '@/components/admin-nav'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LayoutDashboard, Users, Building2, Calendar, FileText, MessageSquare, Bell, TrendingUp, TrendingDown, Activity } from 'lucide-react'
 import Link from 'next/link'
+import { DashboardSkeleton } from '@/components/loading-skeleton'
 
 interface DashboardStats {
   totalUsers: number
@@ -44,29 +45,33 @@ export default function AdminDashboardPage() {
   const [salesPeriod, setSalesPeriod] = useState('month')
   const [isLoading, setIsLoading] = useState(true)
 
-  const fetchStats = useCallback(async () => {
+  // データ取得を並列化（高速化）
+  const fetchAllData = useCallback(async () => {
+    setIsLoading(true)
     try {
-      const response = await fetch('/api/admin/dashboard/stats')
-      const data = await response.json()
-      if (response.ok) {
-        setStats(data.stats)
+      // 2つのAPIを並列取得
+      const [statsRes, salesRes] = await Promise.all([
+        fetch('/api/admin/dashboard/stats'),
+        fetch(`/api/admin/dashboard/sales?period=${salesPeriod}`)
+      ])
+
+      // レスポンスを並列パース
+      const [statsData, salesData] = await Promise.all([
+        statsRes.json(),
+        salesRes.json()
+      ])
+
+      if (statsRes.ok) {
+        setStats(statsData.stats)
+      }
+
+      if (salesRes.ok) {
+        setSalesStats(salesData)
       }
     } catch (error) {
-      console.error('Failed to fetch stats:', error)
+      console.error('Failed to fetch data:', error)
     } finally {
       setIsLoading(false)
-    }
-  }, [])
-
-  const fetchSalesStats = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/admin/dashboard/sales?period=${salesPeriod}`)
-      const data = await response.json()
-      if (response.ok) {
-        setSalesStats(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch sales stats:', error)
     }
   }, [salesPeriod])
 
@@ -83,24 +88,21 @@ export default function AdminDashboardPage() {
       return
     }
 
-    fetchStats()
-    fetchSalesStats()
-  }, [session, status, router, fetchStats, fetchSalesStats])
+    fetchAllData()
+  }, [session, status, router, fetchAllData])
 
   useEffect(() => {
-    if (session) {
-      fetchSalesStats()
+    if (session && !isLoading) {
+      fetchAllData()
     }
-  }, [salesPeriod, session, fetchSalesStats])
+  }, [salesPeriod, session, fetchAllData])
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-cyan-500">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-4 border-white mx-auto"></div>
-          <p className="mt-6 text-white text-lg font-medium">読み込み中...</p>
-        </div>
-      </div>
+      <>
+        <AdminNav />
+        <DashboardSkeleton />
+      </>
     )
   }
 
