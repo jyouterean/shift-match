@@ -169,7 +169,7 @@ export default function StaffReportsPage() {
           notes: '',
         })
         setPriceItems([{ priceTypeId: '', quantity: '' }])
-        fetchReports()
+        fetchAllData()
         alert('日報を提出しました')
       } else {
         alert(data.error || '提出に失敗しました')
@@ -237,7 +237,7 @@ export default function StaffReportsPage() {
 
       const data = await response.json()
       if (response.ok) {
-        fetchReports()
+        fetchAllData()
         alert('日報を削除しました')
       } else {
         alert(data.error || '削除に失敗しました')
