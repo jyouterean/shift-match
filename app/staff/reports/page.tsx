@@ -198,6 +198,7 @@ export default function StaffReportsPage() {
     }, 0)
   }
 
+
   const handleDeleteReport = async (id: string) => {
     if (!confirm('この日報を削除しますか？')) return
 
@@ -565,7 +566,6 @@ export default function StaffReportsPage() {
           </Card>
         </div>
       )}
-
     </div>
   )
 }
