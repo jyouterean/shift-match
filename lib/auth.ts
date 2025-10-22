@@ -106,9 +106,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: true,
-        domain: process.env.NODE_ENV === 'production' 
-          ? 'shiftmatch-eight.vercel.app'
-          : undefined,
+        // domain を指定しない（ホスト限定Cookie）
       },
     },
   },
