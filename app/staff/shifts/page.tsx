@@ -42,6 +42,7 @@ export default function StaffShiftsPage() {
   const [view, setView] = useState<'list' | 'calendar'>('calendar')
   const [pendingChanges, setPendingChanges] = useState<Map<string, 'AVAILABLE' | 'UNAVAILABLE' | 'MAYBE' | 'DELETE'>>(new Map())
   const [isSaving, setIsSaving] = useState(false)
+  const [deadline, setDeadline] = useState<Date | null>(null)
 
   // データ取得を並列化（高速化）
   const fetchAllData = useCallback(async () => {
@@ -49,17 +50,21 @@ export default function StaffShiftsPage() {
     try {
       const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
       const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0)
+      const year = currentMonth.getFullYear()
+      const month = currentMonth.getMonth() + 1
       
-      // 2つのAPIを並列取得
-      const [shiftsRes, availRes] = await Promise.all([
+      // 3つのAPIを並列取得（締切情報も追加）
+      const [shiftsRes, availRes, deadlineRes] = await Promise.all([
         fetch('/api/staff/shifts'),
-        fetch(`/api/staff/availability?startDate=${firstDay.toISOString()}&endDate=${lastDay.toISOString()}`)
+        fetch(`/api/staff/availability?startDate=${firstDay.toISOString()}&endDate=${lastDay.toISOString()}`),
+        fetch(`/api/admin/shift-deadline?year=${year}&month=${month}`)
       ])
 
       // レスポンスを並列パース
-      const [shiftsData, availData] = await Promise.all([
+      const [shiftsData, availData, deadlineData] = await Promise.all([
         shiftsRes.json(),
-        availRes.json()
+        availRes.json(),
+        deadlineRes.json()
       ])
 
       if (shiftsRes.ok) {
@@ -68,6 +73,13 @@ export default function StaffShiftsPage() {
 
       if (availRes.ok) {
         setAvailabilities(availData.availabilities)
+      }
+
+      // シフト締切
+      if (deadlineRes.ok && deadlineData.deadline) {
+        setDeadline(new Date(deadlineData.deadline.deadlineDate))
+      } else {
+        setDeadline(null)
       }
     } catch (error) {
       console.error('Failed to fetch data:', error)
@@ -288,6 +300,26 @@ export default function StaffShiftsPage() {
             マイシフト
           </h1>
           <p className="text-sm sm:text-base text-gray-600">シフト確認とシフト希望登録</p>
+          
+          {/* 締切表示 */}
+          {deadline && (
+            <div className="mt-3 bg-amber-50 border-2 border-amber-400 rounded-lg p-3 flex items-start gap-2">
+              <Clock className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-amber-900 text-sm">
+                  シフト希望提出締切
+                </p>
+                <p className="text-amber-700 text-sm mt-1">
+                  {new Date(deadline).toLocaleDateString('ja-JP', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    weekday: 'short'
+                  })} まで
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ビュー切り替え */}
