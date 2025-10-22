@@ -161,7 +161,7 @@ export default function StaffShiftsPage() {
       await Promise.all(promises)
       
       setPendingChanges(new Map())
-      await fetchAvailabilities()
+      await fetchAllData()
       alert(`${pendingChanges.size}件のシフト希望を提出しました`)
     } catch (error) {
       console.error('Submit availability error:', error)
