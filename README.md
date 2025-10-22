@@ -40,6 +40,17 @@ npm run dev
 
 Vercelにデプロイされています: https://shiftmatch-eight.vercel.app
 
+## 検証: Vercel 実行リージョン (Tokyo hnd1)
+
+- 検証コマンド
+  - 本番またはプレビューのドメインで実行
+  - `curl -I https://<YOUR_DOMAIN>/api/ping`
+  - レスポンスヘッダ `x-vercel-id` に `hnd1::` を含むことを確認
+
+- 注意事項
+  - Middleware は Edge で実行され、地域指定はできません
+  - 重い処理は API/SSR 側（Node.js Runtime）に配置してください
+
 ## ライセンス
 
 © 2025 ShiftMatch. All rights reserved.
