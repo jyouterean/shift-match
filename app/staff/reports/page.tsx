@@ -217,7 +217,7 @@ export default function StaffReportsPage() {
       if (response.ok) {
         setShowAddPriceTypeForm(false)
         setNewPriceTypeData({ name: '', unitPrice: 0, description: '' })
-        fetchPriceTypes()
+        fetchAllData()
         alert('新しい単価タイプを追加しました')
       } else {
         alert(data.error || '追加に失敗しました')
