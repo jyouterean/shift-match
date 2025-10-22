@@ -2,6 +2,9 @@
   "github": {
     "silent": true
   },
+  "env": {
+    "TZ": "Asia/Tokyo"
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -20,19 +23,6 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "api/**/*.{js,ts}": {
-      "runtime": "nodejs20.x",
-      "regions": ["hnd1"]
-    },
-    "pages/api/**/*.{js,ts}": {
-      "runtime": "nodejs20.x",
-      "regions": ["hnd1"]
-    },
-    "app/**/route.{js,ts}": {
-      "regions": ["hnd1"]
-    }
-  }
+  ]
 }
 
