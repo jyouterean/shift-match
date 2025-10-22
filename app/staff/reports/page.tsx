@@ -44,6 +44,7 @@ export default function StaffReportsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingReport, setEditingReport] = useState<Report | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     officeId: '',
@@ -122,6 +123,14 @@ export default function StaffReportsPage() {
 
   const handleCreateReport = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // 連打防止: 既に送信中の場合は何もしない
+    if (isSubmitting) {
+      return
+    }
+    
+    setIsSubmitting(true)
+    
     try {
       const validItems = priceItems
         .filter(item => item.priceTypeId && item.quantity)
@@ -170,6 +179,9 @@ export default function StaffReportsPage() {
       }
     } catch (error) {
       alert('ネットワークエラーが発生しました')
+    } finally {
+      // 処理完了後にフラグを解除
+      setIsSubmitting(false)
     }
   }
 
@@ -551,10 +563,17 @@ export default function StaffReportsPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700">提出</Button>
+                  <Button 
+                    type="submit" 
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? '提出中...' : '提出'}
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
+                    disabled={isSubmitting}
                     onClick={() => setShowCreateForm(false)}
                     className="flex-1"
                   >
