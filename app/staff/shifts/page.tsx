@@ -43,32 +43,34 @@ export default function StaffShiftsPage() {
   const [pendingChanges, setPendingChanges] = useState<Map<string, 'AVAILABLE' | 'UNAVAILABLE' | 'MAYBE' | 'DELETE'>>(new Map())
   const [isSaving, setIsSaving] = useState(false)
 
-  const fetchShifts = useCallback(async () => {
-    try {
-      const response = await fetch('/api/staff/shifts')
-      const data = await response.json()
-      if (response.ok) {
-        setShifts(data.shifts)
-      }
-    } catch (error) {
-      console.error('Failed to fetch shifts:', error)
-    }
-  }, [])
-
-  const fetchAvailabilities = useCallback(async () => {
+  // データ取得を並列化（高速化）
+  const fetchAllData = useCallback(async () => {
+    setIsLoading(true)
     try {
       const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
       const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0)
       
-      const response = await fetch(
-        `/api/staff/availability?startDate=${firstDay.toISOString()}&endDate=${lastDay.toISOString()}`
-      )
-      const data = await response.json()
-      if (response.ok) {
-        setAvailabilities(data.availabilities)
+      // 2つのAPIを並列取得
+      const [shiftsRes, availRes] = await Promise.all([
+        fetch('/api/staff/shifts'),
+        fetch(`/api/staff/availability?startDate=${firstDay.toISOString()}&endDate=${lastDay.toISOString()}`)
+      ])
+
+      // レスポンスを並列パース
+      const [shiftsData, availData] = await Promise.all([
+        shiftsRes.json(),
+        availRes.json()
+      ])
+
+      if (shiftsRes.ok) {
+        setShifts(shiftsData.shifts)
+      }
+
+      if (availRes.ok) {
+        setAvailabilities(availData.availabilities)
       }
     } catch (error) {
-      console.error('Failed to fetch availabilities:', error)
+      console.error('Failed to fetch data:', error)
     } finally {
       setIsLoading(false)
     }
@@ -87,9 +89,8 @@ export default function StaffShiftsPage() {
       return
     }
 
-    fetchShifts()
-    fetchAvailabilities()
-  }, [session, status, router, fetchShifts, fetchAvailabilities])
+    fetchAllData()
+  }, [session, status, router, fetchAllData])
 
   const handleDateClick = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0]

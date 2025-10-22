@@ -64,49 +64,49 @@ export default function StaffReportsPage() {
     description: '',
   })
 
-  const fetchReports = useCallback(async () => {
+  // データ取得を並列化（高速化）
+  const fetchAllData = useCallback(async () => {
+    setIsLoading(true)
     try {
-      const response = await fetch('/api/staff/reports')
-      const data = await response.json()
-      if (response.ok) {
-        setReports(data.reports)
-      }
-    } catch (error) {
-      console.error('Failed to fetch reports:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+      // 3つのAPIを並列取得
+      const [reportsRes, priceTypesRes, companiesRes] = await Promise.all([
+        fetch('/api/staff/reports'),
+        fetch('/api/staff/price-types'),
+        fetch('/api/companies')
+      ])
 
-  const fetchPriceTypes = useCallback(async () => {
-    try {
-      const response = await fetch('/api/staff/price-types')
-      const data = await response.json()
-      if (response.ok) {
-        setPriceTypes(data.priceTypes)
-      }
-    } catch (error) {
-      console.error('Failed to fetch price types:', error)
-    }
-  }, [])
+      // レスポンスを並列パース
+      const [reportsData, priceTypesData, companiesData] = await Promise.all([
+        reportsRes.json(),
+        priceTypesRes.json(),
+        companiesRes.json()
+      ])
 
-  const fetchOffices = useCallback(async () => {
-    try {
-      // 従業員でもアクセスできるよう、会社情報APIから営業所を取得
-      const response = await fetch('/api/companies')
-      const data = await response.json()
-      if (response.ok && data.company) {
-        setOffices(data.company.offices || [])
+      // 日報データ
+      if (reportsRes.ok) {
+        setReports(reportsData.reports)
+      }
+
+      // 単価タイプ
+      if (priceTypesRes.ok) {
+        setPriceTypes(priceTypesData.priceTypes)
+      }
+
+      // 営業所情報
+      if (companiesRes.ok && companiesData.company) {
+        setOffices(companiesData.company.offices || [])
         // 自分のofficeIdがあれば自動選択
         if (session?.user.officeId) {
           setFormData(prev => ({ ...prev, officeId: session.user.officeId || '' }))
-        } else if (data.company.offices && data.company.offices.length > 0) {
+        } else if (companiesData.company.offices && companiesData.company.offices.length > 0) {
           // officeIdがない場合は最初の営業所を選択
-          setFormData(prev => ({ ...prev, officeId: data.company.offices[0].id }))
+          setFormData(prev => ({ ...prev, officeId: companiesData.company.offices[0].id }))
         }
       }
     } catch (error) {
-      console.error('Failed to fetch offices:', error)
+      console.error('Failed to fetch data:', error)
+    } finally {
+      setIsLoading(false)
     }
   }, [session])
 
@@ -123,10 +123,8 @@ export default function StaffReportsPage() {
       return
     }
 
-    fetchReports()
-    fetchPriceTypes()
-    fetchOffices()
-  }, [session, status, router, fetchReports, fetchPriceTypes, fetchOffices])
+    fetchAllData()
+  }, [session, status, router, fetchAllData])
 
   const handleCreateReport = async (e: React.FormEvent) => {
     e.preventDefault()

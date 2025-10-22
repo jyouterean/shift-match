@@ -49,6 +49,16 @@ const nextConfig = {
   // Allow external packages
   serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   
+  // パフォーマンス最適化
+  compress: true, // Gzip圧縮を有効化
+  poweredByHeader: false, // X-Powered-Byヘッダーを削除（セキュリティ）
+  
+  // 画像最適化
+  images: {
+    formats: ['image/avif', 'image/webp'], // 最新フォーマットを優先
+    minimumCacheTTL: 60, // 最小キャッシュ時間（秒）
+  },
+  
   // wwwをnon-wwwにリダイレクト
   async redirects() {
     return [
