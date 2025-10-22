@@ -74,6 +74,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const data = createReportSchema.parse(body)
 
+    // officeIdの検証
+    const officeId = body.officeId || session.user.officeId
+    if (!officeId) {
+      return NextResponse.json(
+        { error: '営業所を選択してください' },
+        { status: 400 }
+      )
+    }
+
     const startTime = new Date(data.startTime)
     const endTime = new Date(data.endTime)
     const workMinutes = Math.floor((endTime.getTime() - startTime.getTime()) / 60000) - data.breakMinutes
@@ -82,7 +91,7 @@ export async function POST(request: NextRequest) {
       data: {
         userId: session.user.id,
         companyId: session.user.companyId,
-        officeId: session.user.officeId || '',
+        officeId: officeId,
         date: new Date(data.date),
         route: data.route,
         startTime,
