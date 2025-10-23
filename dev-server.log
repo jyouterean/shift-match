@@ -9,11 +9,11 @@
  Detected additional lockfiles: 
    * /Users/rean/Desktop/package-lock.json
 
- ⚠ Port 3000 is in use by process 66759, using available port 3001 instead.
+ ⚠ Port 3000 is in use by process 66759, using available port 3002 instead.
    ▲ Next.js 15.5.4
-   - Local:        http://localhost:3001
-   - Network:      http://0.0.0.0:3001
+   - Local:        http://localhost:3002
+   - Network:      http://0.0.0.0:3002
    - Environments: .env.local
 
  ✓ Starting...
- ✓ Ready in 1807ms
+ ✓ Ready in 1935ms

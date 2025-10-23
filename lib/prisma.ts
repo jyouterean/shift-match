@@ -4,10 +4,15 @@ import { PrismaNeon } from '@prisma/adapter-neon'
 import ws from 'ws'
 
 // WebSocketポリフィル（Node.js環境用）
-// Edge Runtimeでは不要だが、Node.js環境では必要
-if (typeof WebSocket === 'undefined') {
+// Vercel Serverless Functions環境でも必要
+if (process.env.VERCEL || typeof WebSocket === 'undefined') {
   neonConfig.webSocketConstructor = ws
+  console.log('[prisma] WebSocket polyfill enabled (ws)')
 }
+
+// Neon設定: コールドスタート時の接続を安定化
+neonConfig.fetchConnectionCache = true
+neonConfig.pipelineConnect = false
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
