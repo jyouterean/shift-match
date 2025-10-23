@@ -14,6 +14,7 @@ import {
   Settings
 } from 'lucide-react'
 import { signOut, useSession } from 'next-auth/react'
+import { clearClientCaches } from '@/lib/client-auth-helpers'
 import { useState } from 'react'
 
 const navigation = [
@@ -124,6 +125,8 @@ export default function StaffNav() {
                   try {
                     // カスタムログアウトAPIを呼び出してCookieを削除
                     await fetch('/api/auth/logout', { method: 'POST' })
+                    // クライアントキャッシュを完全クリア
+                    await clearClientCaches()
                     // NextAuthのsignOutを呼び出してセッションをクリア
                     // redirect: falseにしてから手動でリダイレクトすることでページをリロード
                     await signOut({ redirect: false })
