@@ -10,56 +10,6 @@ import { useRouter } from 'next/navigation'
 import React from 'react'
 
 /**
- * クライアントサイドのキャッシュ/ストレージ/Cookieのクリア
- * - NextAuth関連Cookieの失効
- * - localStorage / sessionStorage のクリア
- * - Service Worker の登録解除
- * - Cache Storage の削除
- */
-export async function clearClientCaches(): Promise<void> {
-  try {
-    // 1) NextAuth関連Cookieを明示的に無効化
-    try {
-      const cookieNames = [
-        '__Secure-next-auth.session-token',
-        'next-auth.session-token',
-        '__Secure-next-auth.callback-url',
-        'next-auth.callback-url',
-        '__Secure-next-auth.csrf-token',
-        'next-auth.csrf-token',
-      ]
-      cookieNames.forEach((name) => {
-        document.cookie = `${name}=; path=/; max-age=0; secure; samesite=lax`
-      })
-    } catch {}
-
-    // 2) Web Storage のクリア
-    try {
-      window.localStorage?.clear?.()
-    } catch {}
-    try {
-      window.sessionStorage?.clear?.()
-    } catch {}
-
-    // 3) Service Worker の登録解除
-    try {
-      if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations()
-        await Promise.all(regs.map((r) => r.unregister().catch(() => {})))
-      }
-    } catch {}
-
-    // 4) Cache Storage の削除
-    try {
-      if (typeof caches !== 'undefined') {
-        const keys = await caches.keys()
-        await Promise.all(keys.map((k) => caches.delete(k).catch(() => false)))
-      }
-    } catch {}
-  } catch {}
-}
-
-/**
  * ページ認証フック（管理者用）
  * 
  * @returns セッション情報とステータス

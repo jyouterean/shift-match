@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import SessionDebug from '@/components/session-debug'
-import { clearClientCaches } from '@/lib/client-auth-helpers'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -65,15 +64,23 @@ export default function SignInPage() {
     console.log('[login] ログイン処理開始... email:', email)
     console.log('[login] CSRF token:', csrfToken ? '有効' : '無効')
 
+    // ログイン前にキャッシュをクリア
+    try {
+      if ('caches' in window) {
+        const cacheNames = await caches.keys()
+        await Promise.all(cacheNames.map(name => caches.delete(name)))
+        console.log('[login] ✅ キャッシュクリア完了')
+      }
+    } catch (cacheError) {
+      console.warn('[login] キャッシュクリアに失敗:', cacheError)
+    }
+
     // CSRFトークンがない場合は警告
     if (!csrfToken) {
       console.warn('[login] ⚠️ CSRF tokenが取得できていません')
     }
 
     try {
-      // 送信前にクライアントキャッシュをクリーン（混在防止）
-      await clearClientCaches()
-
       // タイムアウト処理を追加（30秒）
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('タイムアウト')), 30000)

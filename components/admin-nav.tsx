@@ -19,7 +19,6 @@ import {
   LogOut
 } from 'lucide-react'
 import { useState } from 'react'
-import { clearClientCaches } from '@/lib/client-auth-helpers'
 import { signOut } from 'next-auth/react'
 
 // メインナビゲーション（ボトムバー用）
@@ -125,10 +124,15 @@ export default function AdminNav() {
               onClick={async () => {
                 if (confirm('ログアウトしますか？')) {
                   try {
+                    // キャッシュをクリア
+                    if ('caches' in window) {
+                      const cacheNames = await caches.keys()
+                      await Promise.all(cacheNames.map(name => caches.delete(name)))
+                      console.log('[logout] ✅ キャッシュクリア完了')
+                    }
+                    
                     // カスタムログアウトAPIを呼び出してCookieを削除
                     await fetch('/api/auth/logout', { method: 'POST' })
-                    // クライアントキャッシュを完全クリア
-                    await clearClientCaches()
                     // NextAuthのsignOutを呼び出してセッションをクリア
                     // redirect: falseにしてから手動でリダイレクトすることでページをリロード
                     await signOut({ redirect: false })
