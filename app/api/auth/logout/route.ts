@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
+export const runtime = 'edge'
+
 /**
  * ログアウトAPI
  * セッションCookieを完全に削除する

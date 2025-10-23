@@ -2,9 +2,6 @@
   "github": {
     "silent": true
   },
-  "env": {
-    "TZ": "Asia/Tokyo"
-  },
   "headers": [
     {
       "source": "/(.*)",

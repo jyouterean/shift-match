@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+export const runtime = 'edge'
+
 /**
  * NextAuth疎通テスト用エンドポイント
  * GET /api/auth/test
