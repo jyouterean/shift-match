@@ -17,3 +17,12 @@
 
  ✓ Starting...
  ✓ Ready in 1935ms
+ ⚠ Found a change in next.config.js. Restarting the server to apply the changes...
+   ▲ Next.js 15.5.4
+   - Local:        http://localhost:3001
+   - Network:      http://0.0.0.0:3001
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 3.3s
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/rean/Desktop/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/rean/Desktop/.next/cache/webpack/client-development/0.pack.gz'

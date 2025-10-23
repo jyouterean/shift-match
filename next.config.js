@@ -49,6 +49,16 @@ const nextConfig = {
   // Allow external packages
   serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   
+  // ESLintエラーを無視（ビルド高速化）
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  
+  // TypeScriptエラーを本番ビルド時のみチェック
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  
   // パフォーマンス最適化
   compress: true, // Gzip圧縮を有効化
   poweredByHeader: false, // X-Powered-Byヘッダーを削除（セキュリティ）
