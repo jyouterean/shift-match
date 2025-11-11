@@ -1,0 +1,6 @@
+# セキュリティチェックルール
+Run npm audit --production
+Run semgrep --config p/owasp-top-ten
+Check for HttpOnly + Secure + SameSite cookies
+Validate no secrets (.env, keys) are committed
+

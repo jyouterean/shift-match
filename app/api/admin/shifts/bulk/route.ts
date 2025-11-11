@@ -10,7 +10,6 @@ const bulkCreateShiftSchema = z.object({
   startTime: z.string(),
   endTime: z.string(),
   officeId: z.string(),
-  routeId: z.string().optional(),
   notes: z.string().optional(),
 })
 
@@ -36,7 +35,6 @@ export async function POST(request: NextRequest) {
         shiftsToCreate.push({
           userId,
           officeId: data.officeId,
-          routeId: data.routeId || undefined,
           companyId: session.user.companyId,
           date: new Date(date),
           startTime: new Date(`${date}T${data.startTime}:00`),

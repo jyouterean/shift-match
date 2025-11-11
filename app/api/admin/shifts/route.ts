@@ -9,7 +9,6 @@ type OfficeStatus = 'FILLED' | 'PARTIAL' | 'SHORTAGE' | 'APPLIED' | 'IDLE'
 const createShiftSchema = z.object({
   userId: z.string(),
   officeId: z.string(),
-  routeId: z.string().optional(),
   date: z.string(),
   startTime: z.string(),
   endTime: z.string(),
@@ -20,7 +19,6 @@ const updateShiftSchema = z.object({
   id: z.string(),
   userId: z.string().optional(),
   officeId: z.string().optional(),
-  routeId: z.string().optional(),
   date: z.string().optional(),
   startTime: z.string().optional(),
   endTime: z.string().optional(),
@@ -76,12 +74,6 @@ export async function GET(request: NextRequest) {
           }
         },
         office: {
-          select: {
-            id: true,
-            name: true,
-          }
-        },
-        route: {
           select: {
             id: true,
             name: true,
@@ -267,7 +259,6 @@ export async function POST(request: NextRequest) {
       data: {
         userId: data.userId,
         officeId: data.officeId,
-        routeId: data.routeId,
         companyId: session.user.companyId,
         date: new Date(data.date),
         startTime: new Date(data.startTime),
