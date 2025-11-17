@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
     // 最初のオフィスを取得（なければnull）
     const firstOffice = company.offices[0]
 
-    // ユーザーステータスを会社の設定に基づいて決定
-    const userStatus = company.requireApproval ? 'INACTIVE' : 'ACTIVE'
+    // ユーザーステータスを常にACTIVEに設定（即座にログイン可能）
+    const userStatus = 'ACTIVE'
 
     // ユーザーを作成
     const user = await prisma.user.create({
@@ -118,9 +118,7 @@ export async function POST(request: NextRequest) {
         name: user.name,
         email: user.email,
       },
-      message: company.requireApproval 
-        ? '登録が完了しました。管理者の承認をお待ちください。' 
-        : '登録が完了しました。ログインしてご利用ください。'
+      message: '登録が完了しました。すぐにログインしてご利用いただけます。'
     })
   } catch (error) {
     console.error('Join company error:', error)
