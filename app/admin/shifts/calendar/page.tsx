@@ -61,7 +61,7 @@ export default function ShiftCalendarPage() {
   const router = useRouter()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [calendarData, setCalendarData] = useState<CalendarDay[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false) // ローディングを無効化
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [dayDetail, setDayDetail] = useState<DayDetail | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
@@ -96,9 +96,8 @@ export default function ShiftCalendarPage() {
       }
     } catch (error) {
       console.error('Failed to fetch calendar data:', error)
-    } finally {
-      setIsLoading(false)
     }
+    // ローディング状態を削除（常に表示）
   }, [currentMonth])
 
   const fetchOffices = useCallback(async () => {

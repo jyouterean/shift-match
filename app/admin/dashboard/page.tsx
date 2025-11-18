@@ -43,23 +43,25 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [salesStats, setSalesStats] = useState<SalesStats | null>(null)
   const [salesPeriod, setSalesPeriod] = useState('month')
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false) // ローディング画面を無効化
 
-  // データ取得を並列化（高速化）
+  // データ取得を並列化（高速化・ローディング画面なし）
   const fetchAllData = useCallback(async () => {
-    setIsLoading(true)
     try {
       // 統計データのみ先に取得（優先）
-      const statsRes = await fetch('/api/admin/dashboard/stats')
+      const statsRes = await fetch('/api/admin/dashboard/stats', {
+        cache: 'no-store',
+      })
       const statsData = await statsRes.json()
       
       if (statsRes.ok) {
         setStats(statsData.stats)
-        setIsLoading(false) // ここで早めにローディング解除
       }
 
       // 売上データは後から取得（バックグラウンド）
-      fetch(`/api/admin/dashboard/sales?period=${salesPeriod}`)
+      fetch(`/api/admin/dashboard/sales?period=${salesPeriod}`, {
+        cache: 'no-store',
+      })
         .then(res => res.json())
         .then(data => {
           if (data) {
@@ -69,7 +71,6 @@ export default function AdminDashboardPage() {
         .catch(err => console.error('Sales stats error:', err))
     } catch (error) {
       console.error('Failed to fetch data:', error)
-      setIsLoading(false)
     }
   }, [salesPeriod])
 
@@ -95,11 +96,16 @@ export default function AdminDashboardPage() {
     }
   }, [salesPeriod, session, fetchAllData])
 
-  if (status === 'loading' || isLoading) {
+  // ローディング画面を完全に削除（即座に表示）
+  if (status === 'loading') {
     return (
       <>
         <AdminNav />
-        <DashboardSkeleton />
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pb-20">
+          <div className="container mx-auto px-4 py-6">
+            <p className="text-gray-600">読み込み中...</p>
+          </div>
+        </div>
       </>
     )
   }

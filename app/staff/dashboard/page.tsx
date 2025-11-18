@@ -21,10 +21,9 @@ export default function StaffDashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false) // ローディング画面を無効化
 
   const fetchStats = useCallback(async () => {
-    setIsLoading(true)
     try {
       const response = await fetch('/api/staff/dashboard/stats', {
         cache: 'no-store', // 常に最新データを取得
@@ -35,9 +34,8 @@ export default function StaffDashboardPage() {
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error)
-    } finally {
-      setIsLoading(false)
     }
+    // ローディング状態を削除
   }, [])
 
   useEffect(() => {
