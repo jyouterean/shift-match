@@ -81,11 +81,18 @@ export default function ShiftCalendarPage() {
 
     try {
       const response = await fetch(
-        `/api/admin/shifts/calendar?startDate=${startDate}&endDate=${endDate}`
+        `/api/admin/shifts/calendar?startDate=${startDate}&endDate=${endDate}`,
+        {
+          cache: 'no-store', // キャッシュを無効化して常に最新データを取得
+          headers: {
+            'Cache-Control': 'no-cache',
+          }
+        }
       )
       const data = await response.json()
       if (response.ok) {
         setCalendarData(data.calendar)
+        console.log('Calendar data loaded:', data.calendar.length, 'days')
       }
     } catch (error) {
       console.error('Failed to fetch calendar data:', error)
