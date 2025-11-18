@@ -67,7 +67,7 @@ const nextConfig = {
   // 画像最適化
   images: {
     formats: ['image/avif', 'image/webp'], // 最新フォーマットを優先
-    minimumCacheTTL: 60, // 最小キャッシュ時間（秒）
+    minimumCacheTTL: 604800, // 1週間（7日 x 24時間 x 60分 x 60秒 = 604800秒）
     deviceSizes: [640, 750, 828, 1080, 1200, 1920], // レスポンシブ対応
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
@@ -95,6 +95,26 @@ const nextConfig = {
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+      // 静的リソースのキャッシュ（1週間）
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=604800, immutable",
+          },
+        ],
+      },
+      // 画像のキャッシュ（1週間）
+      {
+        source: "/images/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=604800, immutable",
+          },
+        ],
       },
     ]
   },
