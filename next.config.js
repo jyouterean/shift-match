@@ -62,11 +62,19 @@ const nextConfig = {
   // パフォーマンス最適化
   compress: true, // Gzip圧縮を有効化
   poweredByHeader: false, // X-Powered-Byヘッダーを削除（セキュリティ）
+  swcMinify: true, // SWCミニファイを使用（高速化）
   
   // 画像最適化
   images: {
     formats: ['image/avif', 'image/webp'], // 最新フォーマットを優先
     minimumCacheTTL: 60, // 最小キャッシュ時間（秒）
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920], // レスポンシブ対応
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+  },
+  
+  // 実験的機能（パフォーマンス向上）
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
   
   // wwwをnon-wwwにリダイレクト
