@@ -49,28 +49,26 @@ export default function AdminDashboardPage() {
   const fetchAllData = useCallback(async () => {
     setIsLoading(true)
     try {
-      // 2つのAPIを並列取得
-      const [statsRes, salesRes] = await Promise.all([
-        fetch('/api/admin/dashboard/stats'),
-        fetch(`/api/admin/dashboard/sales?period=${salesPeriod}`)
-      ])
-
-      // レスポンスを並列パース
-      const [statsData, salesData] = await Promise.all([
-        statsRes.json(),
-        salesRes.json()
-      ])
-
+      // 統計データのみ先に取得（優先）
+      const statsRes = await fetch('/api/admin/dashboard/stats')
+      const statsData = await statsRes.json()
+      
       if (statsRes.ok) {
         setStats(statsData.stats)
+        setIsLoading(false) // ここで早めにローディング解除
       }
 
-      if (salesRes.ok) {
-        setSalesStats(salesData)
-      }
+      // 売上データは後から取得（バックグラウンド）
+      fetch(`/api/admin/dashboard/sales?period=${salesPeriod}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data) {
+            setSalesStats(data)
+          }
+        })
+        .catch(err => console.error('Sales stats error:', err))
     } catch (error) {
       console.error('Failed to fetch data:', error)
-    } finally {
       setIsLoading(false)
     }
   }, [salesPeriod])

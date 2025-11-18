@@ -24,8 +24,11 @@ export default function StaffDashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   const fetchStats = useCallback(async () => {
+    setIsLoading(true)
     try {
-      const response = await fetch('/api/staff/dashboard/stats')
+      const response = await fetch('/api/staff/dashboard/stats', {
+        cache: 'no-store', // 常に最新データを取得
+      })
       const data = await response.json()
       if (response.ok) {
         setStats(data.stats)
