@@ -27,7 +27,6 @@ export default function AdminSettingsPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [formData, setFormData] = useState({
     name: '',
-    requireApproval: false,
   })
 
   const fetchCompany = useCallback(async () => {
@@ -38,7 +37,6 @@ export default function AdminSettingsPage() {
         setCompany(data.company)
         setFormData({
           name: data.company.name,
-          requireApproval: data.company.requireApproval,
         })
       }
     } catch (error) {
@@ -197,28 +195,6 @@ export default function AdminSettingsPage() {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
                     />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <Label className="text-base">新規従業員の承認</Label>
-                      <p className="text-sm text-gray-600">
-                        新しく参加した従業員を管理者が承認する
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, requireApproval: !formData.requireApproval })}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        formData.requireApproval ? 'bg-blue-600' : 'bg-gray-200'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          formData.requireApproval ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
                   </div>
 
                   <Button type="submit" className="w-full">
