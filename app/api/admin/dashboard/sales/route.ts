@@ -17,10 +17,20 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'month' // 'month' | 'week' | 'all'
+    const customStartDate = searchParams.get('startDate')
+    const customEndDate = searchParams.get('endDate')
 
     // 期間設定
-    let startDate = new Date()
-    if (period === 'month') {
+    let startDate: Date
+    let endDate: Date | undefined
+
+    if (customStartDate) {
+      // カスタム期間指定がある場合
+      startDate = new Date(customStartDate)
+      if (customEndDate) {
+        endDate = new Date(customEndDate)
+      }
+    } else if (period === 'month') {
       startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
     } else if (period === 'week') {
       startDate = new Date()
@@ -30,12 +40,18 @@ export async function GET(request: NextRequest) {
     }
 
     // 承認済み日報から売上を計算
+    const whereClause: any = {
+      companyId: session.user.companyId,
+      status: 'APPROVED',
+      date: { gte: startDate },
+    }
+
+    if (endDate) {
+      whereClause.date.lte = endDate
+    }
+
     const reports = await prisma.dailyReport.findMany({
-      where: {
-        companyId: session.user.companyId,
-        status: 'APPROVED',
-        date: { gte: startDate },
-      },
+      where: whereClause,
       include: {
         user: {
           select: {

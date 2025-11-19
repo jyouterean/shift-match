@@ -55,20 +55,24 @@ export default function AdminDashboardPage() {
       if (statsRes.ok) {
         setStats(statsData.stats)
       }
+    } catch (error) {
+      console.error('Failed to fetch stats:', error)
+    }
+  }, [])
 
-      // 売上データは後から取得（バックグラウンド）
-      fetch(`/api/admin/dashboard/sales?period=${salesPeriod}`, {
+  // 売上データ取得（期間変更時に再取得）
+  const fetchSalesData = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/dashboard/sales?period=${salesPeriod}`, {
         cache: 'no-store',
       })
-        .then(res => res.json())
-        .then(data => {
-          if (data) {
-            setSalesStats(data)
-          }
-        })
-        .catch(err => console.error('Sales stats error:', err))
-    } catch (error) {
-      console.error('Failed to fetch data:', error)
+      const data = await res.json()
+      
+      if (res.ok && data) {
+        setSalesStats(data)
+      }
+    } catch (err) {
+      console.error('Sales stats error:', err)
     }
   }, [salesPeriod])
 
@@ -86,7 +90,15 @@ export default function AdminDashboardPage() {
     }
 
     fetchAllData()
-  }, [session, status, router, fetchAllData])
+    fetchSalesData()
+  }, [session, status, router, fetchAllData, fetchSalesData])
+
+  // 期間変更時に売上データを再取得
+  useEffect(() => {
+    if (session && (session.user.role === 'OWNER' || session.user.role === 'ADMIN')) {
+      fetchSalesData()
+    }
+  }, [salesPeriod, session, fetchSalesData])
 
   // ローディング画面を完全に削除（即座に表示）
   if (status === 'loading') {
@@ -348,6 +360,11 @@ export default function AdminDashboardPage() {
                     >
                       全期間
                     </button>
+                    <Link href="/admin/sales">
+                      <button className="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-green-600 text-white hover:bg-green-700">
+                        詳細を見る
+                      </button>
+                    </Link>
                   </div>
                 </div>
 
