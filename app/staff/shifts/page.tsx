@@ -2,11 +2,12 @@
 
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import StaffNav from '@/components/staff-nav'
 import { Calendar, MapPin, Clock, CheckCircle, XCircle, HelpCircle } from 'lucide-react'
+import { format } from 'date-fns'
 
 interface Shift {
   id: string
@@ -32,6 +33,12 @@ interface Availability {
   notes?: string
 }
 
+interface StaffMonthCacheEntry {
+  shifts: Shift[]
+  availabilities: Availability[]
+  deadline: string | null
+}
+
 export default function StaffShiftsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -44,49 +51,95 @@ export default function StaffShiftsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [deadline, setDeadline] = useState<Date | null>(null)
 
-  // データ取得を並列化（高速化）
+  const monthCacheRef = useRef<Record<string, StaffMonthCacheEntry>>({})
+  const fetchAbortRef = useRef<AbortController | null>(null)
+
+  const applyCachedMonth = useCallback((key: string) => {
+    const cached = monthCacheRef.current[key]
+    if (!cached) return
+
+    setShifts(cached.shifts)
+    setAvailabilities(cached.availabilities)
+    setDeadline(cached.deadline ? new Date(cached.deadline) : null)
+    setIsLoading(false)
+  }, [])
+
+  useEffect(() => {
+    monthCacheRef.current = {}
+  }, [session?.user?.companyId])
+
+  // データ取得を並列化（キャッシュ＋中断対応）
   const fetchAllData = useCallback(async () => {
-    setIsLoading(true)
+    const monthKey = format(currentMonth, 'yyyy-MM')
+    const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
+    const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0)
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth() + 1
+    const hasCache = Boolean(monthCacheRef.current[monthKey])
+
+    if (!hasCache) {
+      setIsLoading(true)
+    }
+
+    if (fetchAbortRef.current) {
+      fetchAbortRef.current.abort()
+    }
+
+    const controller = new AbortController()
+    fetchAbortRef.current = controller
+
     try {
-      const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
-      const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0)
-      const year = currentMonth.getFullYear()
-      const month = currentMonth.getMonth() + 1
-      
-      // 3つのAPIを並列取得（締切情報も追加）
       const [shiftsRes, availRes, deadlineRes] = await Promise.all([
-        fetch('/api/staff/shifts'),
-        fetch(`/api/staff/availability?startDate=${firstDay.toISOString()}&endDate=${lastDay.toISOString()}`),
-        fetch(`/api/admin/shift-deadline?year=${year}&month=${month}`)
+        fetch('/api/staff/shifts', {
+          signal: controller.signal,
+          cache: 'no-store',
+        }),
+        fetch(
+          `/api/staff/availability?startDate=${firstDay.toISOString()}&endDate=${lastDay.toISOString()}`,
+          {
+            signal: controller.signal,
+            cache: 'no-store',
+          }
+        ),
+        fetch(`/api/admin/shift-deadline?year=${year}&month=${month}`, {
+          signal: controller.signal,
+          cache: 'no-store',
+        }),
       ])
 
-      // レスポンスを並列パース
       const [shiftsData, availData, deadlineData] = await Promise.all([
         shiftsRes.json(),
         availRes.json(),
-        deadlineRes.json()
+        deadlineRes.json(),
       ])
 
-      if (shiftsRes.ok) {
-        setShifts(shiftsData.shifts)
+      const previous = monthCacheRef.current[monthKey] || {
+        shifts: [] as Shift[],
+        availabilities: [] as Availability[],
+        deadline: null as string | null,
       }
 
-      if (availRes.ok) {
-        setAvailabilities(availData.availabilities)
+      const cacheEntry: StaffMonthCacheEntry = {
+        shifts: shiftsRes.ok ? shiftsData.shifts : previous.shifts,
+        availabilities: availRes.ok ? availData.availabilities : previous.availabilities,
+        deadline: deadlineRes.ok && deadlineData?.deadline
+          ? deadlineData.deadline.deadlineDate
+          : previous.deadline,
       }
 
-      // シフト締切
-      if (deadlineRes.ok && deadlineData.deadline) {
-        setDeadline(new Date(deadlineData.deadline.deadlineDate))
-      } else {
-        setDeadline(null)
-      }
+      monthCacheRef.current[monthKey] = cacheEntry
+      applyCachedMonth(monthKey)
     } catch (error) {
+      if ((error as Error)?.name === 'AbortError') {
+        return
+      }
       console.error('Failed to fetch data:', error)
     } finally {
-      setIsLoading(false)
+      if (!controller.signal.aborted) {
+        setIsLoading(false)
+      }
     }
-  }, [currentMonth])
+  }, [currentMonth, applyCachedMonth])
 
   useEffect(() => {
     if (status === 'loading') return
@@ -101,8 +154,17 @@ export default function StaffShiftsPage() {
       return
     }
 
+    const monthKey = format(currentMonth, 'yyyy-MM')
+    if (monthCacheRef.current[monthKey]) {
+      applyCachedMonth(monthKey)
+    }
+
     fetchAllData()
-  }, [session, status, router, fetchAllData])
+
+    return () => {
+      fetchAbortRef.current?.abort()
+    }
+  }, [session, status, router, currentMonth, fetchAllData, applyCachedMonth])
 
   const handleDateClick = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0]

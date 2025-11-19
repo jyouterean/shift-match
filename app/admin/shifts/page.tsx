@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import AdminNav from '@/components/admin-nav'
@@ -47,6 +47,12 @@ interface Availability {
   officeId?: string
   officeName?: string
   availableDates: string[]
+}
+
+interface MonthCacheEntry {
+  days: DaySummary[]
+  availabilities: Availability[]
+  deadline: string | null
 }
 
 // 営業所の安定色生成（HSL）
@@ -110,6 +116,17 @@ export default function AdminShiftsPage() {
   // 割当処理中フラグ（重複防止）
   const [isAssigning, setIsAssigning] = useState(false)
   
+  // 仮決定シフト（一括保存用）
+  const [pendingAssignments, setPendingAssignments] = useState<Array<{
+    id: string // 一時ID
+    date: string
+    officeId: string
+    officeName: string
+    memberId: string
+    memberName: string
+    isAvailable: boolean
+  }>>([])
+  
   // 日別シフト詳細ダイアログ
   const [dayDetailDialog, setDayDetailDialog] = useState<{
     open: boolean
@@ -119,6 +136,28 @@ export default function AdminShiftsPage() {
   
   // Excelプレビューダイアログ
   const [showExcelPreview, setShowExcelPreview] = useState(false)
+
+  const monthCacheRef = useRef<Record<string, MonthCacheEntry>>({})
+  const fetchAbortRef = useRef<AbortController | null>(null)
+
+  const applyCachedMonth = useCallback((key: string) => {
+    const cached = monthCacheRef.current[key]
+    if (!cached) return
+
+    setDays(cached.days)
+    setAvailabilities(cached.availabilities)
+
+    if (cached.deadline) {
+      const deadlineDate = new Date(cached.deadline)
+      setDeadline(deadlineDate)
+      setDeadlineInput(format(deadlineDate, 'yyyy-MM-dd'))
+    } else {
+      setDeadline(null)
+      setDeadlineInput('')
+    }
+
+    setIsLoading(false)
+  }, [])
 
   // 認証チェック
   useEffect(() => {
@@ -133,69 +172,102 @@ export default function AdminShiftsPage() {
     }
   }, [session, status, router])
 
-  // データ取得（並列化で高速化）
+  useEffect(() => {
+    monthCacheRef.current = {}
+  }, [session?.user?.companyId])
+
+  // データ取得（キャッシュ＋中断対応で高速化）
   const fetchData = useCallback(async () => {
-    setIsLoading(true)
+    const monthKey = format(currentMonth, 'yyyy-MM')
+    const year = currentMonth.getFullYear()
+    const monthNum = currentMonth.getMonth() + 1
+    const hasCache = Boolean(monthCacheRef.current[monthKey])
+
+    if (!hasCache) {
+      setIsLoading(true)
+    }
+
     setError(null)
+
+    if (fetchAbortRef.current) {
+      fetchAbortRef.current.abort()
+    }
+
+    const controller = new AbortController()
+    fetchAbortRef.current = controller
+
     try {
-      const month = format(currentMonth, 'yyyy-MM')
-      const year = currentMonth.getFullYear()
-      const monthNum = currentMonth.getMonth() + 1
-      
-      // 3つのAPIを並列取得（高速化）
       const [summaryRes, availRes, deadlineRes] = await Promise.all([
-        fetch(`/api/admin/shifts?month=${month}`),
-        fetch(`/api/admin/availability?month=${month}`),
-        fetch(`/api/admin/shift-deadline?year=${year}&month=${monthNum}`)
+        fetch(`/api/admin/shifts?month=${monthKey}`, {
+          signal: controller.signal,
+          cache: 'no-store',
+        }),
+        fetch(`/api/admin/availability?month=${monthKey}`, {
+          signal: controller.signal,
+          cache: 'no-store',
+        }),
+        fetch(`/api/admin/shift-deadline?year=${year}&month=${monthNum}`, {
+          signal: controller.signal,
+          cache: 'no-store',
+        }),
       ])
-      
-      // レスポンスを並列パース
+
       const [summaryData, availData, deadlineData] = await Promise.all([
         summaryRes.json(),
         availRes.json(),
-        deadlineRes.json()
+        deadlineRes.json(),
       ])
-      
-      // 月サマリー
-      if (summaryRes.ok) {
-        setDays(summaryData.days || [])
-      } else {
+
+      if (!summaryRes.ok) {
         setError(summaryData.error || 'データの取得に失敗しました')
       }
 
-      // 個人の出勤可能日
-      if (availRes.ok) {
-        setAvailabilities(availData.availabilities || [])
+      const previous = monthCacheRef.current[monthKey] || {
+        days: [] as DaySummary[],
+        availabilities: [] as Availability[],
+        deadline: null as string | null,
       }
 
-      // シフト締切
-      if (deadlineRes.ok) {
-        if (deadlineData.deadline) {
-          const deadlineDate = new Date(deadlineData.deadline.deadlineDate)
-          setDeadline(deadlineDate)
-          setDeadlineInput(format(deadlineDate, 'yyyy-MM-dd'))
-        } else {
-          setDeadline(null)
-          setDeadlineInput('')
-        }
-      } else {
-        console.error('Failed to fetch deadline:', deadlineData)
-        setDeadline(null)
-        setDeadlineInput('')
+      const cacheEntry: MonthCacheEntry = {
+        days: summaryRes.ok ? (summaryData.days || []) : previous.days,
+        availabilities: availRes.ok ? (availData.availabilities || []) : previous.availabilities,
+        deadline: deadlineRes.ok && deadlineData?.deadline
+          ? deadlineData.deadline.deadlineDate
+          : previous.deadline,
       }
+
+      monthCacheRef.current[monthKey] = cacheEntry
+      applyCachedMonth(monthKey)
     } catch (err) {
+      if ((err as Error)?.name === 'AbortError') {
+        return
+      }
       console.error('Failed to fetch data:', err)
       setError('データの取得中にエラーが発生しました')
     } finally {
-      setIsLoading(false)
+      if (!controller.signal.aborted) {
+        setIsLoading(false)
+      }
     }
-  }, [currentMonth])
+  }, [currentMonth, applyCachedMonth])
 
   useEffect(() => {
-    if (session && (session.user.role === 'OWNER' || session.user.role === 'ADMIN')) {
-      fetchData()
+    if (status === 'loading') return
+    if (!session || (session.user.role !== 'OWNER' && session.user.role !== 'ADMIN')) {
+      return
     }
-  }, [session, fetchData])
+
+    const monthKey = format(currentMonth, 'yyyy-MM')
+    if (monthCacheRef.current[monthKey]) {
+      applyCachedMonth(monthKey)
+    }
+
+    fetchData()
+
+    return () => {
+      fetchAbortRef.current?.abort()
+    }
+  }, [session, status, currentMonth, fetchData, applyCachedMonth])
 
   // 月の移動
   const previousMonth = () => setCurrentMonth(prev => subMonths(prev, 1))
@@ -280,14 +352,42 @@ export default function AdminShiftsPage() {
   // 日別シフト詳細を取得
   const fetchDayShifts = async (dateStr: string) => {
     try {
-      const res = await fetch(`/api/admin/shifts?startDate=${dateStr}&endDate=${dateStr}`)
+      // 日付文字列を正しくフォーマット（YYYY-MM-DD T00:00:00Z形式）
+      const startDateTime = `${dateStr}T00:00:00.000Z`
+      const endDateTime = `${dateStr}T23:59:59.999Z`
+      
+      const res = await fetch(`/api/admin/shifts?startDate=${startDateTime}&endDate=${endDateTime}`, {
+        cache: 'no-store',
+      })
       const data = await res.json()
       
       if (res.ok) {
+        // 既存のシフト + 仮決定のシフトをマージ
+        const existingShifts = data.shifts || []
+        const pendingForDay = pendingAssignments
+          .filter(p => p.date === dateStr)
+          .map(p => ({
+            id: p.id,
+            date: dateStr,
+            startTime: `${dateStr}T09:00:00`,
+            endTime: `${dateStr}T18:00:00`,
+            status: 'PENDING' as const,
+            user: {
+              id: p.memberId,
+              name: `${p.memberName} (仮決定)`,
+              email: '',
+            },
+            office: {
+              id: p.officeId,
+              name: p.officeName,
+            },
+            notes: '',
+          }))
+        
         setDayDetailDialog({
           open: true,
           date: dateStr,
-          shifts: data.shifts || []
+          shifts: [...existingShifts, ...pendingForDay]
         })
       } else {
         alert('シフト情報の取得に失敗しました')
@@ -298,8 +398,18 @@ export default function AdminShiftsPage() {
     }
   }
   
-  // シフトを削除
-  const handleDeleteShift = async (shiftId: string) => {
+  // シフトを削除（既存シフトまたは仮決定シフト）
+  const handleDeleteShift = async (shiftId: string, shiftStatus?: string) => {
+    // 仮決定シフトの場合はローカルで削除
+    if (shiftStatus === 'PENDING') {
+      handleRemovePendingAssignment(shiftId)
+      if (dayDetailDialog) {
+        await fetchDayShifts(dayDetailDialog.date)
+      }
+      return
+    }
+    
+    // 既存シフトの場合はAPIで削除
     if (!confirm('このシフトを削除してもよろしいですか？')) return
     
     try {
@@ -390,50 +500,110 @@ export default function AdminShiftsPage() {
     }
   }
 
-  // 割当実行（重複防止＋楽観的UI更新＋希望日確認）
-  const handleAssign = async () => {
-    if (!assignDialog || !selectedMember || isAssigning) return
+  // 割当を仮決定リストに追加
+  const handleAssign = () => {
+    if (!assignDialog || !selectedMember) return
+
+    const member = availabilities.find(a => a.memberId === selectedMember)
+    if (!member) return
+
+    const day = days.find(d => d.date === assignDialog.date)
+    if (!day) return
+
+    const office = day.offices.find(o => o.officeId === assignDialog.officeId)
+    if (!office) return
 
     // 希望日でない場合は確認ダイアログを表示
     if (!assignDialog.isAvailable) {
       const confirmed = confirm(
         '⚠️ この日は希望日ではありません。\n' +
-        'それでもシフトに入れてもよろしいですか？'
+        'それでも仮決定してもよろしいですか？'
       )
       if (!confirmed) {
-        setIsAssigning(false)
         return
       }
+    }
+
+    // 仮決定リストに追加
+    const newAssignment = {
+      id: `temp-${Date.now()}-${Math.random()}`,
+      date: assignDialog.date,
+      officeId: assignDialog.officeId,
+      officeName: office.officeName,
+      memberId: selectedMember,
+      memberName: member.memberName,
+      isAvailable: assignDialog.isAvailable,
+    }
+
+    setPendingAssignments(prev => [...prev, newAssignment])
+    setAssignDialog(null)
+  }
+  
+  // 仮決定を一括保存
+  const handleSavePendingAssignments = async () => {
+    if (pendingAssignments.length === 0) {
+      alert('保存するシフトがありません')
+      return
+    }
+
+    if (!confirm(`${pendingAssignments.length}件のシフトを一括保存しますか？`)) {
+      return
     }
 
     setIsAssigning(true)
 
     try {
-      const res = await fetch('/api/admin/shifts/assignment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: assignDialog.date,
-          officeId: assignDialog.officeId,
-          memberId: selectedMember,
-        }),
-      })
+      const promises = pendingAssignments.map(assignment =>
+        fetch('/api/admin/shifts/assignment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: assignment.date,
+            officeId: assignment.officeId,
+            memberId: assignment.memberId,
+          }),
+        })
+      )
 
-      const data = await res.json()
-      if (res.ok) {
-        // ダイアログを即座に閉じて反応速度を向上
-        setAssignDialog(null)
-        
-        // バックグラウンドでデータを再取得（UIブロックなし）
+      const results = await Promise.all(promises)
+      const failedCount = results.filter(r => !r.ok).length
+
+      if (failedCount === 0) {
+        alert(`${pendingAssignments.length}件のシフトを保存しました`)
+        setPendingAssignments([])
         fetchData()
       } else {
-        alert(data.error || '割当に失敗しました')
+        alert(`一部のシフト保存に失敗しました（失敗: ${failedCount}件）`)
+        // 成功したものは削除して、失敗したものだけ残す
+        const failedAssignments = await Promise.all(
+          pendingAssignments.map(async (assignment, index) => {
+            if (results[index].ok) return null
+            return assignment
+          })
+        )
+        setPendingAssignments(failedAssignments.filter(Boolean) as typeof pendingAssignments)
+        fetchData()
       }
     } catch (err) {
+      console.error('Bulk save error:', err)
       alert('ネットワークエラーが発生しました')
     } finally {
       setIsAssigning(false)
     }
+  }
+  
+  // 仮決定をキャンセル
+  const handleCancelPendingAssignments = () => {
+    if (pendingAssignments.length === 0) return
+    
+    if (confirm(`${pendingAssignments.length}件の仮決定をキャンセルしますか？`)) {
+      setPendingAssignments([])
+    }
+  }
+  
+  // 個別の仮決定を削除
+  const handleRemovePendingAssignment = (id: string) => {
+    setPendingAssignments(prev => prev.filter(p => p.id !== id))
   }
 
   if (status === 'loading' || isLoading) {
@@ -622,7 +792,7 @@ export default function AdminShiftsPage() {
                 </div>
 
                 {/* 凡例 */}
-                <div className="flex gap-4 text-sm">
+                <div className="flex gap-4 text-sm mb-3">
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                     <span>充足</span>
@@ -643,7 +813,37 @@ export default function AdminShiftsPage() {
                     <div className="w-3 h-3 rounded-full bg-gray-400"></div>
                     <span>非稼働</span>
                   </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-purple-500 border-2 border-dashed border-purple-700"></div>
+                    <span>仮決定</span>
+                  </div>
                 </div>
+
+                {/* 仮決定の一括保存・キャンセルボタン */}
+                {pendingAssignments.length > 0 && (
+                  <div className="flex gap-2 items-center p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div className="flex-1 text-sm font-medium text-purple-900">
+                      💾 {pendingAssignments.length}件のシフトが仮決定されています
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={handleSavePendingAssignments}
+                      disabled={isAssigning}
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                    >
+                      {isAssigning ? '保存中...' : '一括保存'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelPendingAssignments}
+                      disabled={isAssigning}
+                      className="border-purple-300 text-purple-700"
+                    >
+                      キャンセル
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -675,6 +875,9 @@ export default function AdminShiftsPage() {
                     // 選択中メンバーの可日かチェック
                     const selectedMemberData = selectedMember ? availabilities.find(a => a.memberId === selectedMember) : null
                     const isAvailableDay = selectedMemberData?.availableDates.includes(dateStr)
+                    
+                    // この日の仮決定シフト数
+                    const pendingCount = pendingAssignments.filter(p => p.date === dateStr).length
 
                     return (
                       <div
@@ -690,11 +893,18 @@ export default function AdminShiftsPage() {
                       >
                         {/* 日付とステータスドット */}
                         <div className="flex items-start justify-between mb-1">
-                          <span className={`text-sm font-semibold ${
-                            !isCurrentMonth ? 'text-gray-400' : 'text-gray-700'
-                          }`}>
-                            {dayDate.getDate()}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className={`text-sm font-semibold ${
+                              !isCurrentMonth ? 'text-gray-400' : 'text-gray-700'
+                            }`}>
+                              {dayDate.getDate()}
+                            </span>
+                            {pendingCount > 0 && (
+                              <span className="px-1.5 py-0.5 bg-purple-500 text-white text-[10px] font-bold rounded border border-purple-700">
+                                +{pendingCount}
+                              </span>
+                            )}
+                          </div>
                           {day && (
                             <div className={`w-2 h-2 rounded-full ${statusDotColors[day.dayStatus]}`}></div>
                           )}
@@ -802,16 +1012,14 @@ export default function AdminShiftsPage() {
                   <div className="flex gap-3 pt-4">
                     <Button 
                       onClick={handleAssign} 
-                      className="flex-1 bg-blue-600 hover:bg-blue-700"
-                      disabled={isAssigning}
+                      className="flex-1 bg-purple-600 hover:bg-purple-700"
                     >
-                      {isAssigning ? '割当中...' : '割当'}
+                      💾 仮決定
                     </Button>
                     <Button 
                       variant="outline" 
                       onClick={() => setAssignDialog(null)} 
                       className="flex-1"
-                      disabled={isAssigning}
                     >
                       キャンセル
                     </Button>
@@ -849,7 +1057,11 @@ export default function AdminShiftsPage() {
                     {dayDetailDialog.shifts.map((shift) => (
                       <div
                         key={shift.id}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                        className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                          shift.status === 'PENDING' 
+                            ? 'bg-purple-50 border-purple-200 border-2 border-dashed hover:bg-purple-100' 
+                            : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                        }`}
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
@@ -857,13 +1069,15 @@ export default function AdminShiftsPage() {
                             <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
                               {shift.office?.name || '未配属'}
                             </span>
-                            <span className={`px-2 py-1 text-xs rounded ${
+                            <span className={`px-2 py-1 text-xs rounded font-medium ${
+                              shift.status === 'PENDING' ? 'bg-purple-100 text-purple-700 border border-purple-300' :
                               shift.status === 'SCHEDULED' ? 'bg-amber-100 text-amber-700' :
                               shift.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
                               shift.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
                               'bg-gray-100 text-gray-700'
                             }`}>
-                              {shift.status === 'SCHEDULED' ? '予定' :
+                              {shift.status === 'PENDING' ? '💾 仮決定' :
+                               shift.status === 'SCHEDULED' ? '予定' :
                                shift.status === 'IN_PROGRESS' ? '進行中' :
                                shift.status === 'COMPLETED' ? '完了' :
                                shift.status}
@@ -877,11 +1091,15 @@ export default function AdminShiftsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="ml-4 border-red-300 text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteShift(shift.id)}
+                          className={`ml-4 ${
+                            shift.status === 'PENDING'
+                              ? 'border-purple-300 text-purple-600 hover:bg-purple-100'
+                              : 'border-red-300 text-red-600 hover:bg-red-50'
+                          }`}
+                          onClick={() => handleDeleteShift(shift.id, shift.status)}
                         >
                           <X className="h-4 w-4 mr-1" />
-                          削除
+                          {shift.status === 'PENDING' ? '取消' : '削除'}
                         </Button>
                       </div>
                     ))}

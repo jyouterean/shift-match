@@ -7,7 +7,6 @@ import AdminNav from '@/components/admin-nav'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LayoutDashboard, Users, Building2, Calendar, FileText, MessageSquare, Bell, TrendingUp, TrendingDown, Activity } from 'lucide-react'
 import Link from 'next/link'
-import { DashboardSkeleton } from '@/components/loading-skeleton'
 
 interface DashboardStats {
   totalUsers: number
@@ -43,7 +42,6 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [salesStats, setSalesStats] = useState<SalesStats | null>(null)
   const [salesPeriod, setSalesPeriod] = useState('month')
-  const [isLoading, setIsLoading] = useState(false) // ローディング画面を無効化
 
   // データ取得を並列化（高速化・ローディング画面なし）
   const fetchAllData = useCallback(async () => {
@@ -89,12 +87,6 @@ export default function AdminDashboardPage() {
 
     fetchAllData()
   }, [session, status, router, fetchAllData])
-
-  useEffect(() => {
-    if (session && !isLoading) {
-      fetchAllData()
-    }
-  }, [salesPeriod, session, fetchAllData])
 
   // ローディング画面を完全に削除（即座に表示）
   if (status === 'loading') {

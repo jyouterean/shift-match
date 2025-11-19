@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 
+const path = require('path')
+
 // セキュリティヘッダー設定
 // 目的：Security Headers 評価 A+ に引き上げ
 // HSTS preload 対応 + CSP nonce化で unsafe-inline 完全排除
@@ -46,6 +48,9 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
+  // 明示的にワークスペースルートを指定（Next.jsのルート自動検出バグ回避）
+  outputFileTracingRoot: path.join(__dirname),
+
   // Allow external packages
   serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   
@@ -62,7 +67,6 @@ const nextConfig = {
   // パフォーマンス最適化
   compress: true, // Gzip圧縮を有効化
   poweredByHeader: false, // X-Powered-Byヘッダーを削除（セキュリティ）
-  swcMinify: true, // SWCミニファイを使用（高速化）
   
   // 画像最適化
   images: {
