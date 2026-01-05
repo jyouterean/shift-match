@@ -50,7 +50,7 @@ export default function StaffChatPage() {
   useEffect(() => {
     if (status === 'loading') return
 
-    if (!session) {
+    if (!session || !session.user) {
       router.push('/auth/signin')
       return
     }
@@ -61,7 +61,7 @@ export default function StaffChatPage() {
     }
 
     fetchMessages()
-    const interval = setInterval(fetchMessages, 10000) // 5秒→10秒に変更
+    const interval = setInterval(fetchMessages, 10000)
     return () => clearInterval(interval)
   }, [session, status, router, fetchMessages])
 

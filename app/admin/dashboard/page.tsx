@@ -79,7 +79,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (status === 'loading') return
 
-    if (!session) {
+    if (!session || !session.user) {
       router.push('/auth/signin')
       return
     }
@@ -95,7 +95,7 @@ export default function AdminDashboardPage() {
 
   // 期間変更時に売上データを再取得
   useEffect(() => {
-    if (session && (session.user.role === 'OWNER' || session.user.role === 'ADMIN')) {
+    if (session?.user && (session.user.role === 'OWNER' || session.user.role === 'ADMIN')) {
       fetchSalesData()
     }
   }, [salesPeriod, session, fetchSalesData])
@@ -559,4 +559,3 @@ function StatCard({ icon, title, value, subtitle, gradient, trend, trendValue, h
 
   return cardContent
 }
-

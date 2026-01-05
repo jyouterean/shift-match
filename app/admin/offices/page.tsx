@@ -48,7 +48,7 @@ export default function AdminOfficesPage() {
   useEffect(() => {
     if (status === 'loading') return
 
-    if (!session) {
+    if (!session || !session.user) {
       router.push('/auth/signin')
       return
     }

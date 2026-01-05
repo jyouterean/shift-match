@@ -162,7 +162,7 @@ export default function AdminShiftsPage() {
   // 認証チェック
   useEffect(() => {
     if (status === 'loading') return
-    if (!session) {
+    if (!session || !session.user) {
       router.push('/auth/signin')
       return
     }
@@ -253,7 +253,7 @@ export default function AdminShiftsPage() {
 
   useEffect(() => {
     if (status === 'loading') return
-    if (!session || (session.user.role !== 'OWNER' && session.user.role !== 'ADMIN')) {
+    if (!session?.user || (session.user.role !== 'OWNER' && session.user.role !== 'ADMIN')) {
       return
     }
 
